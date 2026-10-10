@@ -53,6 +53,7 @@
 
 ## 설계서에서 정한 해석
 - 왕알도 튕길 수 있음. 무거워서 조금만 감 (`Config.CanFlickKing`).
+- 똥알·유령은 반복 사용 가능 (`Config.ReusableAbilities`), 나머지 능력은 1회.
 - 유령·똥알은 상대 턴 한 번 동안 (똥알은 그동안 똥 모양), 자석은 상대 턴 + 내 다음 턴 동안 유지 (`Config.EffectTurns`). 자석 알은 그동안 나도 상대도 못 움직임.
 - 소리는 로블록스 기본 내장 소리 8개를 음 높이만 바꿔 씀 (`Config.Sounds`, `Config.Melodies`).
 - 둥근 알은 구슬이 아니라 바둑알처럼 볼록한 타원체. 물리 몸통은 원기둥이고 겉모양만 볼록 (`Config.RoundHeight`). 납작 알보다 미끄러워서 멀리 가고(friction), 세게 튄다(bounce).

@@ -313,9 +313,11 @@ local function useAbility(piece: BasePart, team: number)
 		return
 	end
 	state:SetAttribute("Phase", "Moving")
-	-- 능력 알은 1회 사용
-	piece:SetAttribute("Ability", nil)
-	PieceFactory.refreshAbilityTag(piece)
+	-- 능력 알은 1회 사용 (Config.ReusableAbilities 는 계속 쓸 수 있음)
+	if not Config.ReusableAbilities[ability.Id] then
+		piece:SetAttribute("Ability", nil)
+		PieceFactory.refreshAbilityTag(piece)
+	end
 	Effects.sound(if Config.Sounds[ability.Id] then ability.Id else "Ability", piece)
 	Effects.banner(Config.Teams[team].Name .. " : " .. ability.Icon .. " " .. ability.Name .. "!", Config.Teams[team].Color)
 	Speech.sayAbility(piece, ability.Id)

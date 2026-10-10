@@ -27,6 +27,11 @@ end
 
 -- 아래가 넓고 위로 갈수록 좁아지는 똥 (공 4개 + 눈)
 local function buildPoop(piece: BasePart, context)
+	-- 이미 똥이면 (여러 번 쓸 때) 새로 만든다
+	local old = piece:FindFirstChild("PoopLook")
+	if old then
+		old:Destroy()
+	end
 	local folder = Instance.new("Folder")
 	folder.Name = "PoopLook"
 

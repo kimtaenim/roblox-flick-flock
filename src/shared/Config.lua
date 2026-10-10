@@ -94,6 +94,8 @@ Config.MagnetElasticity = 1 -- 자석 알에 부딪히면 되튕기는 정도
 Config.PoopSlowFactor = 0.35 -- 똥을 밟으면 속도가 이만큼으로 줄어듦
 Config.FootprintTime = 4 -- 똥 발자국이 남는 시간 (초)
 Config.EffectTurns = { Ghost = 2, Poop = 2, Magnet = 3 }
+-- 여러 번 쓸 수 있는 능력 (나머지는 한 번 쓰면 끝)
+Config.ReusableAbilities = { Poop = true, Ghost = true }
 -- 소환 확률 (합이 100)
 -- 소환 : 하늘에서 거창한 것이 나타나 상대 진영을 공격한다 (진짜 물체가 떨어져서 부딪힘).
 -- Chance 합은 100. Result 는 Summon.lua 안의 소환 이름.
