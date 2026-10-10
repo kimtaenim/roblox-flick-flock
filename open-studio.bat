@@ -1,7 +1,7 @@
 @echo off
 REM ============================================================
 REM  Flick Flock - local Studio launcher
-REM  Copy this file to the Desktop and double-click it.
+REM  Run it once from anywhere; it puts a "Flick Flock" shortcut on the Desktop.
 REM  1. git clone (first time) / git pull (every time)
 REM  2. download Rojo + install the Rojo Studio plugin
 REM  3. build FlickFlock.rbxlx and open it in Roblox Studio
@@ -68,6 +68,20 @@ git pull --ff-only
 if errorlevel 1 (
     echo [WARN] git pull failed - continuing with local files.
 )
+
+REM Desktop shortcut "Flick Flock" -> the launcher inside the repo (always the latest one).
+REM Re-created every run so the Roblox Studio icon stays valid after Studio updates.
+echo [1/4] Updating desktop shortcut ...
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$desktop=[Environment]::GetFolderPath('Desktop');" ^
+  "$link=(New-Object -ComObject WScript.Shell).CreateShortcut((Join-Path $desktop 'Flick Flock.lnk'));" ^
+  "$link.TargetPath='%REPO%\open-studio.bat';" ^
+  "$link.WorkingDirectory='%REPO%';" ^
+  "$link.Description='Flick Flock: git pull + Roblox Studio';" ^
+  "$studio=Get-ChildItem (Join-Path $env:LOCALAPPDATA 'Roblox\Versions') -Recurse -Filter RobloxStudioBeta.exe -ErrorAction SilentlyContinue | Select-Object -First 1;" ^
+  "if ($studio) { $link.IconLocation=$studio.FullName + ',0' };" ^
+  "$link.Save()"
+if errorlevel 1 echo [WARN] Could not create the desktop shortcut.
 
 set "ROJO_DIR=%REPO%\tools\rojo-%ROJO_VERSION%"
 set "ROJO=%ROJO_DIR%\rojo.exe"

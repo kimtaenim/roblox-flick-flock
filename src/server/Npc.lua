@@ -8,7 +8,18 @@ local Npc = {}
 
 -- slow : 미끄러지거나 굴러가며 초당 줄어드는 속도 (없으면 판 마찰로 계산)
 -- bounce : 튕김 (없으면 settings.elasticity)
-export type PieceInfo = { x: number, z: number, mass: number, radius: number, slow: number?, bounce: number? }
+-- isKing·hp : 왕알이면 표시. massFactor : 데미지 계산용 질량 계수 (없으면 1)
+export type PieceInfo = {
+	x: number,
+	z: number,
+	mass: number,
+	radius: number,
+	slow: number?,
+	bounce: number?,
+	isKing: boolean?,
+	hp: number?,
+	massFactor: number?,
+}
 export type Shot = { shooter: number, target: number?, dirX: number, dirZ: number, power: number }
 
 -- 점 (x, z) 에서 방향 (dx, dz) 로 갔을 때 판 가장자리까지 거리
@@ -80,7 +91,7 @@ local function powerNeeded(mine: PieceInfo, target: PieceInfo, settings): (numbe
 	return power, dx, dz
 end
 
--- 부딪힌 뒤 내 알이 계속 굴러가서 판 밖으로 떨어질지
+-- 부딪힌 뒤 내 알이 계속 미끄러져서 판 밖으로 떨어질지 (무거운 알에 맞고 뒤로 튕기는 것도)
 local function shooterFallsOff(mine: PieceInfo, target: PieceInfo, power: number, dx: number, dz: number, settings): boolean
 	local defaultSlow = settings.friction * settings.gravity
 	local mineSlow = mine.slow or defaultSlow
@@ -91,15 +102,45 @@ local function shooterFallsOff(mine: PieceInfo, target: PieceInfo, power: number
 	if hitSpeedSq <= 0 then
 		return false
 	end
-	-- 정면 충돌 뒤 내 알 속도
+	-- 정면 충돌 뒤 내 알 속도 (음수면 뒤로 튕김)
 	local leftSpeed = math.sqrt(hitSpeedSq) * (mine.mass - pairBounce(mine, target, settings) * target.mass) / (mine.mass + target.mass)
-	if leftSpeed <= 0 then
-		return false
-	end
 	local travel = leftSpeed * leftSpeed / (2 * mineSlow)
 	local hitX = target.x - dx * (mine.radius + target.radius)
 	local hitZ = target.z - dz * (mine.radius + target.radius)
-	return travel > distanceToEdge(hitX, hitZ, dx, dz, settings.boardHalf)
+	if leftSpeed >= 0 then
+		return travel > distanceToEdge(hitX, hitZ, dx, dz, settings.boardHalf)
+	end
+	return travel > distanceToEdge(hitX, hitZ, -dx, -dz, settings.boardHalf)
+end
+
+-- 왕알 들이받기 : 떨어지지 않는 가장 센 세기와 그때 데미지
+local function kingAttack(mine: PieceInfo, king: PieceInfo, settings): (number, number, number, number)
+	local dx, dz = king.x - mine.x, king.z - mine.z
+	local distance = math.sqrt(dx * dx + dz * dz)
+	if distance < 1e-3 then
+		return 0, 0, 0, 0
+	end
+	dx, dz = dx / distance, dz / distance
+	local slow = mine.slow or settings.friction * settings.gravity
+	local gap = math.max(distance - mine.radius - king.radius, 0)
+	local power = 1
+	while power >= 0.4 do
+		if not shooterFallsOff(mine, king, power, dx, dz, settings) then
+			local startSpeed = power * settings.flickPower / mine.mass
+			local hitSpeedSq = startSpeed * startSpeed - 2 * slow * gap
+			if hitSpeedSq <= 0 then
+				return 0, power, dx, dz
+			end
+			local hitSpeed = math.sqrt(hitSpeedSq)
+			local damage = 0
+			if hitSpeed >= settings.damageMinSpeed then
+				damage = hitSpeed * (mine.massFactor or 1) * settings.damageScale
+			end
+			return damage, power, dx, dz
+		end
+		power -= 0.1
+	end
+	return 0, 0, dx, dz
 end
 
 local function rotate(dx: number, dz: number, degrees: number): (number, number)
@@ -128,26 +169,56 @@ function Npc.chooseShot(mine: { PieceInfo }, enemies: { PieceInfo }, settings, r
 		end
 	end
 
+	-- 점수가 높은 샷을 고른다. 왕알을 가장 먼저 노린다.
 	local best: Shot? = nil
-	local bestScore = math.huge
+	local bestValue = -math.huge
+	local function consider(value: number, shot: Shot)
+		if value > bestValue then
+			bestValue = value
+			best = shot
+		end
+	end
+
 	for shooterIndex, shooter in mine do
 		for targetIndex, target in enemies do
+			local blocked = isBlocked(shooter, target, everyone)
+
+			-- ① 판 밖으로 밀어내기
 			local power, dx, dz = powerNeeded(shooter, target, settings)
 			if power < math.huge then
-				local score = power
-				if isBlocked(shooter, target, everyone) then
-					score += 10 -- 막혀 있으면 웬만하면 안 고른다
-				end
+				local value = if target.isKing then 100 else 15 - power * 5
 				if power > 1 then
-					score += 5 -- 힘이 모자라면 뒤로 미룬다
+					value = if target.isKing then 5 else 2 -- 힘이 모자라면 웬만하면 안 고른다
+				end
+				if blocked then
+					value -= 20
 				end
 				if shooterFallsOff(shooter, target, power, dx, dz, settings) then
-					score += 3 -- 내 알도 같이 떨어질 것 같으면 웬만하면 피한다
+					value -= 12 -- 내 알도 같이 떨어질 것 같으면 피한다
 				end
-				if score < bestScore then
-					bestScore = score
-					best = { shooter = shooterIndex, target = targetIndex, dirX = dx, dirZ = dz, power = math.min(power, 1) }
+				consider(value, { shooter = shooterIndex, target = targetIndex, dirX = dx, dirZ = dz, power = math.min(power, 1) })
+			end
+
+			-- ② 왕알 들이받기
+			if target.isKing and not blocked then
+				local damage, attackPower, kx, kz = kingAttack(shooter, target, settings)
+				if damage > 0 then
+					local hp = target.hp or 100
+					local value = if damage >= hp then 90 else 25 + 20 * math.min(damage / hp, 1)
+					consider(value, { shooter = shooterIndex, target = targetIndex, dirX = kx, dirZ = kz, power = attackPower })
 				end
+			end
+		end
+	end
+
+	-- 좋은 샷이 없으면 그래도 왕알 쪽으로 (가는 길의 알을 밀어 준다)
+	if bestValue < 0 then
+		for targetIndex, target in enemies do
+			if target.isKing then
+				local shooter = mine[1]
+				local dx, dz = target.x - shooter.x, target.z - shooter.z
+				local length = math.max(math.sqrt(dx * dx + dz * dz), 1e-3)
+				best = { shooter = 1, target = targetIndex, dirX = dx / length, dirZ = dz / length, power = 0.7 }
 			end
 		end
 	end

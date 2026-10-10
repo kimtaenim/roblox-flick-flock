@@ -165,7 +165,17 @@ local function loseReason(pieces, team: number): string?
 end
 
 local function infoOf(p)
-	return { x = p.x, z = p.z, mass = p.mass, radius = p.radius, slow = p.slow, bounce = p.bounce }
+	return {
+		x = p.x,
+		z = p.z,
+		mass = p.mass,
+		radius = p.radius,
+		slow = p.slow,
+		bounce = p.bounce,
+		isKing = p.kind == "King",
+		hp = p.hp,
+		massFactor = p.massFactor,
+	}
 end
 
 local function playGame(seed: number, presetRed: number, presetBlue: number)
@@ -205,6 +215,8 @@ local function playGame(seed: number, presetRed: number, presetBlue: number)
 			flickPower = Config.FlickPower,
 			powerBoost = Config.NpcPowerBoost,
 			aimErrorDegrees = Config.NpcAimErrorDegrees,
+			damageScale = Config.DamageScale,
+			damageMinSpeed = Config.DamageMinSpeed,
 		}, rng :: any)
 		if shot then
 			assert(shot.power >= 0 and shot.power <= 1, "세기가 0~1 밖")

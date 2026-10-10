@@ -349,11 +349,26 @@ local function toInfo(piece: BasePart): Npc.PieceInfo
 		radius = PieceFactory.radius(piece),
 		slow = slowOf(piece),
 		bounce = if info then info.bounce else nil,
+		isKing = piece:GetAttribute("Kind") == "King",
+		hp = piece:GetAttribute("Hp") :: number?,
+		massFactor = PieceFactory.massFactor(piece),
 	}
 end
 
 -- NPC 가 쓸 만한 능력 알 고르기
 local function chooseNpcAbility(team: number): BasePart?
+	-- 상대 왕알 가까이 있는 폭발 알은 무조건 터뜨린다
+	local enemyKing = kingOf(3 - team)
+	if enemyKing then
+		for _, piece in piecesOf(team) do
+			if
+				piece:GetAttribute("Ability") == "Explosion"
+				and (enemyKing.Position - piece.Position).Magnitude < Config.ExplosionRadius * 0.8
+			then
+				return piece
+			end
+		end
+	end
 	if random:NextNumber() >= Config.NpcAbilityChance then
 		return nil
 	end
@@ -414,6 +429,8 @@ local function playNpcTurn(team: number)
 		flickPower = Config.FlickPower,
 		powerBoost = Config.NpcPowerBoost,
 		aimErrorDegrees = Config.NpcAimErrorDegrees,
+		damageScale = Config.DamageScale,
+		damageMinSpeed = Config.DamageMinSpeed,
 	}, random, blockers)
 	if not shot then
 		-- 튕길 알이 없으면 차례만 넘긴다
