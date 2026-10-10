@@ -323,6 +323,39 @@ function Board.addTerrain(piecesFolder: Instance)
 		return random:NextNumber(low, high)
 	end)
 
+	-- 판 전체 요철 : 알이 놓인 자리만 빼고 촘촘히 (알이 처음부터 기울지 않게)
+	local ripples = floor.Ripples
+	if ripples then
+		local reach = Board.shape.reach
+		local folder = Instance.new("Folder")
+		folder.Name = "Ripples"
+		folder.Parent = board
+		local x = -reach
+		while x <= reach do
+			local z = -reach
+			while z <= reach do
+				local px = x + random:NextNumber(-ripples.Jitter, ripples.Jitter)
+				local pz = z + random:NextNumber(-ripples.Jitter, ripples.Jitter)
+				local free = BoardShape.inside(Board.shape, px, pz, 1)
+				if free then
+					for _, other in occupied do
+						if math.sqrt((other[1] - px) ^ 2 + (other[2] - pz) ^ 2) < other[3] + 1 then
+							free = false
+							break
+						end
+					end
+				end
+				if free then
+					local info = { Radius = ripples.Radius, Height = random:NextNumber(ripples.MinHeight, ripples.MaxHeight) }
+					local shade = floor.Color:Lerp(Color3.new(0, 0, 0), random:NextNumber(0, 0.12))
+					makeMound("Ripple", px, pz, info, shade, (Enum.Material :: any)[floor.Material] or Enum.Material.Ground, folder)
+				end
+				z += ripples.Spacing
+			end
+			x += ripples.Spacing
+		end
+	end
+
 	for _, spot in terrain.mounds do
 		makeMound("Mound", spot.x, spot.z, floor.Mounds, floor.Color:Lerp(Color3.fromRGB(110, 150, 80), 0.35), Enum.Material.Grass, board)
 	end

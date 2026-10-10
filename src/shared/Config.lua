@@ -106,11 +106,22 @@ Config.Floors = {
 		Mounds = { Count = 3, Radius = 7, Height = 0.7 }, -- 언덕 : 넓고 완만해서 빠르면 타고 살짝 점프
 		-- 구덩이 : 얕게 패인 곳. 알이 지나가면 가운데로 살짝 끌리고(Pull) 조금 느려진다(Damping)
 		Dips = { Count = 2, Radius = 4.5, Pull = 15, Damping = 0.8 },
+		-- 판 전체를 덮는 낮은 요철 : 판에 묻은 작은 공들을 촘촘히 (Spacing 간격, Height 는 최소~최대 사이 무작위)
+		Ripples = { Spacing = 4, Radius = 3, MinHeight = 0.1, MaxHeight = 0.25, Jitter = 1.2 },
+	},
+	Sand = {
+		Name = "모래판",
+		Icon = "🏖",
+		Order = 5,
+		Friction = 0.4, -- 모래라서 나무보다 덜 미끄러짐 (알이 조금 일찍 멈춤)
+		FrictionWeight = 2,
+		Color = Color3.fromRGB(232, 206, 150),
+		Material = "Sand",
 	},
 	Chess = {
 		Name = "체스판",
 		Icon = "♟",
-		Order = 5,
+		Order = 6,
 		Friction = 0.22, -- 반들반들해서 조금 더 미끄러움
 		FrictionWeight = 3,
 		Color = Color3.fromRGB(238, 218, 181),
@@ -122,7 +133,7 @@ Config.Floors = {
 	Janggi = {
 		Name = "장기판",
 		Icon = "🀄",
-		Order = 6,
+		Order = 7,
 		Friction = 0.3,
 		Color = Color3.fromRGB(232, 190, 120),
 		Material = "Wood",
@@ -133,7 +144,7 @@ Config.Floors = {
 	Baduk = {
 		Name = "바둑판",
 		Icon = "⚫",
-		Order = 7,
+		Order = 8,
 		Friction = 0.38, -- 나무결이 거칠어서 덜 미끄러움
 		FrictionWeight = 3,
 		Color = Color3.fromRGB(222, 180, 105),

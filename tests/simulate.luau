@@ -406,7 +406,7 @@ end
 -- 판 종류마다 : 크기·모양 × 바닥 × 팀 수 (시작 배치가 판 위에 있고 겹치지 않는지, 판이 끝나는지)
 print("판 종류별 (각 20판, 추천 팀 무작위)")
 local sizeKeys = { "Normal", "Small", "Large", "Gourd", "Bear" }
-local floorKeys = { "Wood", "Ice", "Volcano", "Bumpy", "Chess", "Janggi", "Baduk" }
+local floorKeys = { "Wood", "Ice", "Volcano", "Bumpy", "Sand", "Chess", "Janggi", "Baduk" }
 for _, sizeKey in sizeKeys do
 	for teamCount = 2, 4 do
 		if BoardShape.allowed(Config, sizeKey, teamCount) then
