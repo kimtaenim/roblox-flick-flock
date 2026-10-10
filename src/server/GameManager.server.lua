@@ -115,7 +115,7 @@ Remotes.Flick.OnServerEvent:Connect(function(player, piece, direction, power)
 	if teamOwners[team] ~= player then
 		return
 	end
-	if typeof(piece) ~= "Instance" or piece.Parent ~= piecesFolder or piece:GetAttribute("Team") ~= team then
+	if typeof(piece) ~= "Instance" or not piece:IsA("BasePart") or piece.Parent ~= piecesFolder or piece:GetAttribute("Team") ~= team then
 		return
 	end
 	if typeof(direction) ~= "Vector3" or typeof(power) ~= "number" or power ~= power then
