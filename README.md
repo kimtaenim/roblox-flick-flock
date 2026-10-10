@@ -11,4 +11,4 @@
    - Rojo를 받아 Studio 플러그인을 설치하고, `FlickFlock.rbxlx`를 만들어 Studio로 연 뒤 Rojo 서버를 켭니다.
 3. Studio 로그인 계정이 `oompaloompa0730`인지 확인합니다 (한 번 로그인하면 기억됨).
 4. Studio에서 **플러그인 탭 → Rojo → Connect** (`localhost`, 포트 **34872**).
-5. **Play** 를 누르면 혼자서 빨강·파랑을 번갈아 조종합니다. 둘이 하려면 **Test → Clients and Servers → 2 Players**.
+5. **Play** 를 누르면 나(빨강) 대 NPC(파랑)로 시작합니다. 둘이 하려면 **Test → Clients and Servers → 2 Players**.

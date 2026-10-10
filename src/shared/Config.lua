@@ -42,9 +42,15 @@ Config.StopHoldTime = 1 -- 모두 멈춘 채 이 시간이 지나면 턴 넘김 
 Config.MaxMoveTime = 12 -- 아무리 오래 움직여도 이 시간 뒤엔 턴 넘김 (초)
 Config.RestartDelay = 6 -- 승패가 난 뒤 새 판까지 (초)
 
--- 혼자 테스트
-Config.AllowSoloPlay = true -- 혼자면 빨강·파랑 둘 다 조종
+-- 혼자 할 때
+Config.SoloMode = "Npc" -- "Npc": 파랑은 컴퓨터 / "BothTeams": 혼자 빨강·파랑 둘 다 조종
 Config.SoloWaitTime = 3 -- 친구를 이만큼 기다린 뒤 혼자 시작 (초)
+
+-- NPC (컴퓨터)
+Config.NpcName = "NPC"
+Config.NpcThinkTime = 1.5 -- 쏘기 전에 생각하는 척 (초)
+Config.NpcAimErrorDegrees = 10 -- 조준이 빗나가는 정도 (클수록 쉬움)
+Config.NpcPowerBoost = 1.25 -- 계산한 세기보다 이만큼 세게 (클수록 과감)
 
 -- 카메라
 Config.CameraHeight = 45

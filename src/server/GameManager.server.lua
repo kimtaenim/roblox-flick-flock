@@ -10,6 +10,7 @@ local Remotes = require(Shared:WaitForChild("Remotes"))
 local Board = require(script.Parent:WaitForChild("Board"))
 local PieceFactory = require(script.Parent:WaitForChild("PieceFactory"))
 local Elimination = require(script.Parent:WaitForChild("Elimination"))
+local Npc = require(script.Parent:WaitForChild("Npc"))
 
 local state = Remotes.State
 
@@ -38,22 +39,35 @@ piecesFolder.Parent = workspace
 
 Board.build()
 
--- 팀 주인 : teamOwners[1] = 빨강 플레이어, teamOwners[2] = 파랑 플레이어
-local teamOwners: { [number]: Player? } = {}
+-- 팀 주인 : teamOwners[1] = 빨강 플레이어, teamOwners[2] = 파랑 플레이어 (NPC 면 "Npc")
+local NPC_OWNER_ID = -1
+local teamOwners: { [number]: Player | string | nil } = {}
 local restartRequested = false
 
 local function assignTeams()
 	local list = Players:GetPlayers()
 	teamOwners[1] = list[1]
-	teamOwners[2] = list[2] or (if Config.AllowSoloPlay then list[1] else nil)
+	if list[2] then
+		teamOwners[2] = list[2]
+	elseif Config.SoloMode == "BothTeams" then
+		teamOwners[2] = list[1]
+	else
+		teamOwners[2] = "Npc"
+	end
 	for team = 1, 2 do
 		local owner = teamOwners[team]
-		state:SetAttribute("Team" .. team .. "Owner", if owner then owner.UserId else 0)
+		local ownerId = 0
+		if owner == "Npc" then
+			ownerId = NPC_OWNER_ID
+		elseif typeof(owner) == "Instance" and owner:IsA("Player") then
+			ownerId = owner.UserId
+		end
+		state:SetAttribute("Team" .. team .. "Owner", ownerId)
 	end
 end
 
 local function isSoloGame(): boolean
-	return teamOwners[1] ~= nil and teamOwners[1] == teamOwners[2]
+	return teamOwners[1] ~= nil and (teamOwners[2] == "Npc" or teamOwners[1] == teamOwners[2])
 end
 
 Players.PlayerAdded:Connect(function(player)
@@ -106,6 +120,60 @@ RunService.Heartbeat:Connect(function()
 	Elimination.removeOutPieces(piecesFolder)
 end)
 
+-- 알 튕기기 (사람·NPC 공통)
+local function applyFlick(piece: BasePart, direction: Vector3, power: number)
+	state:SetAttribute("Phase", "Moving")
+	piece:SetNetworkOwner(nil)
+	piece:ApplyImpulse(direction.Unit * power * Config.FlickPower)
+end
+
+-- NPC 차례 : 생각하고 쏜다
+local function piecesOf(team: number): { BasePart }
+	local list = {}
+	for _, piece in piecesFolder:GetChildren() do
+		if piece:IsA("BasePart") and piece:GetAttribute("Team") == team then
+			table.insert(list, piece)
+		end
+	end
+	return list
+end
+
+local function toInfo(pieces: { BasePart }): { Npc.PieceInfo }
+	local infos = {}
+	for _, piece in pieces do
+		table.insert(infos, {
+			x = piece.Position.X,
+			z = piece.Position.Z,
+			mass = piece.AssemblyMass,
+			radius = piece.Size.Y / 2,
+		})
+	end
+	return infos
+end
+
+local function playNpcTurn(team: number)
+	task.wait(Config.NpcThinkTime)
+	if restartRequested or state:GetAttribute("Phase") ~= "Aiming" then
+		return
+	end
+	local mine = piecesOf(team)
+	local enemies = piecesOf(3 - team)
+	local shot = Npc.chooseShot(toInfo(mine), toInfo(enemies), {
+		boardHalf = Config.BoardSize / 2,
+		gravity = workspace.Gravity,
+		friction = Config.BoardFriction,
+		elasticity = Config.PieceElasticity,
+		flickPower = Config.FlickPower,
+		powerBoost = Config.NpcPowerBoost,
+		aimErrorDegrees = Config.NpcAimErrorDegrees,
+	})
+	if not shot then
+		state:SetAttribute("Phase", "Moving")
+		return
+	end
+	applyFlick(mine[shot.shooter], Vector3.new(shot.dirX, 0, shot.dirZ), math.max(shot.power, Config.MinFlickPower))
+end
+
 -- 튕기기 요청 (클라이언트는 "이 알을 이 방향으로 이만큼"만 보낸다)
 Remotes.Flick.OnServerEvent:Connect(function(player, piece, direction, power)
 	if state:GetAttribute("Phase") ~= "Aiming" then
@@ -131,9 +199,7 @@ Remotes.Flick.OnServerEvent:Connect(function(player, piece, direction, power)
 		return
 	end
 
-	state:SetAttribute("Phase", "Moving")
-	piece:SetNetworkOwner(nil)
-	piece:ApplyImpulse(flatDirection.Unit * power * Config.FlickPower)
+	applyFlick(piece, flatDirection, power)
 end)
 
 -- 모든 알이 멈출 때까지 기다린다
@@ -167,6 +233,10 @@ local function playRound()
 
 	while true do
 		state:SetAttribute("Phase", "Aiming")
+		local team = state:GetAttribute("CurrentTeam")
+		if teamOwners[team] == "Npc" then
+			task.spawn(playNpcTurn, team)
+		end
 		while state:GetAttribute("Phase") == "Aiming" do
 			if restartRequested then
 				return
@@ -201,7 +271,7 @@ while true do
 		if count >= 2 then
 			break
 		end
-		if count == 1 and Config.AllowSoloPlay and waited >= Config.SoloWaitTime then
+		if count == 1 and waited >= Config.SoloWaitTime then
 			break
 		end
 		if count == 0 then

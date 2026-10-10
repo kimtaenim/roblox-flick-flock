@@ -61,6 +61,8 @@ local function refresh()
 			helpLabel.Text = if Config.PullBackToShoot
 				then "내 알을 뒤로 끌었다 놓으면 날아가요!"
 				else "내 알을 날릴 방향으로 끌었다 놓아요!"
+		elseif state:GetAttribute("Team" .. team .. "Owner") == -1 then
+			helpLabel.Text = Config.NpcName .. "가 생각하는 중..."
 		else
 			helpLabel.Text = "상대가 조준하는 중..."
 		end
