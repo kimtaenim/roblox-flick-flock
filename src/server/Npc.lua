@@ -241,7 +241,19 @@ function Npc.chooseShot(mine: { PieceInfo }, enemies: { PieceInfo }, settings, r
 	-- 가끔 실수 : 아무 알로 아무 상대 알 쪽을 아무 세기로
 	if settings.mistakeChance and rng:NextNumber(0, 1) < settings.mistakeChance and #enemies > 0 then
 		local shooterIndex = math.clamp(math.floor(rng:NextNumber(1, #mine + 1)), 1, #mine)
-		local targetIndex = math.clamp(math.floor(rng:NextNumber(1, #enemies + 1)), 1, #enemies)
+		-- 실수할 때는 보통 알 쪽으로 (보통 알이 없을 때만 왕알)
+		local choices = {}
+		for index, enemy in enemies do
+			if not enemy.isKing then
+				table.insert(choices, index)
+			end
+		end
+		if #choices == 0 then
+			for index in enemies do
+				table.insert(choices, index)
+			end
+		end
+		local targetIndex = choices[math.clamp(math.floor(rng:NextNumber(1, #choices + 1)), 1, #choices)]
 		local shooter, target = mine[shooterIndex], enemies[targetIndex]
 		local dx, dz = target.x - shooter.x, target.z - shooter.z
 		local length = math.max(math.sqrt(dx * dx + dz * dz), 1e-3)

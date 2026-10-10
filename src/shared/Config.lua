@@ -39,7 +39,7 @@ Config.DamageCooldown = 0.3 -- 같은 알이 연달아 때릴 때 간격 (초)
 Config.Teams = {
 	{ Name = "빨강", Color = Color3.fromRGB(226, 70, 70) },
 	{ Name = "파랑", Color = Color3.fromRGB(64, 120, 230) },
-	{ Name = "초록", Color = Color3.fromRGB(70, 190, 90) },
+	{ Name = "보라", Color = Color3.fromRGB(150, 80, 220) },
 	{ Name = "노랑", Color = Color3.fromRGB(240, 200, 40) },
 }
 Config.DefaultTeamCount = 2 -- 방장이 안 고르면
@@ -142,7 +142,7 @@ Config.NpcAimErrorDegrees = 14 -- 조준이 빗나가는 정도 (클수록 쉬�
 Config.NpcMistakeChance = 0.35 -- 엉뚱한 데로 치는 확률 (0~1, 클수록 쉬움)
 Config.NpcPowerError = 0.3 -- 세기가 틀리는 정도 (0.25 = ±25%, 클수록 쉬움)
 Config.NpcPowerBoost = 1.25 -- 계산한 세기보다 이만큼 세게 (클수록 과감)
-Config.NpcKingFocus = 0.35 -- 왕알을 노리는 턴의 비율 (0~1). 나머지 턴은 보통 알을 밀어낸다
+Config.NpcKingFocus = 0.2 -- 왕알을 노리는 턴의 비율 (0~1). 나머지 턴은 보통 알을 밀어낸다
 Config.NpcAbilityChance = 0.35 -- 능력 알이 있을 때 능력을 쓸 확률
 
 -- 카메라
