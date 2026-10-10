@@ -56,7 +56,8 @@ function Ability.Execute(piece: BasePart, context)
 				else
 					other:ApplyImpulse((direction + Vector3.new(0, 0.3, 0)) * Config.ExplosionPower * strength)
 				end
-				if other:GetAttribute("Kind") == "King" then
+				-- 왕알 데미지 (같은 편 왕알은 안 다침)
+				if other:GetAttribute("Kind") == "King" and other:GetAttribute("Team") ~= context.team then
 					context.Damage.apply(other, Config.ExplosionKingDamage * strength, 1)
 				end
 			end

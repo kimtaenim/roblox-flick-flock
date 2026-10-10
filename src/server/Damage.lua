@@ -71,8 +71,8 @@ local function onPieceTouched(piece: BasePart, other: BasePart)
 		end
 	end
 
-	-- 왕알이면 데미지
-	if piece:GetAttribute("Kind") ~= "King" then
+	-- 왕알이면 데미지. 같은 편 알과 부딪히면 데미지 없음
+	if piece:GetAttribute("Kind") ~= "King" or other:GetAttribute("Team") == piece:GetAttribute("Team") then
 		return
 	end
 	local hits = lastHitTime[piece]

@@ -180,7 +180,7 @@ function Npc.chooseShot(mine: { PieceInfo }, enemies: { PieceInfo }, settings, r
 		end
 	end
 
-	-- 내 왕알은 다른 알이 하나도 없을 때만 친다 (용암·판 밖으로 스스로 뛰어들지 않게)
+	-- 아무것도 못 고를 때 쓸 알 : 되도록 보통 알
 	local hasSoldier = false
 	local firstShooter = 1
 	for index, piece in mine do
@@ -191,8 +191,9 @@ function Npc.chooseShot(mine: { PieceInfo }, enemies: { PieceInfo }, settings, r
 			hasSoldier = true
 		end
 	end
-	local function usable(piece: PieceInfo): boolean
-		return not (piece.isKing and hasSoldier)
+	-- 왕알도 칠 수 있다 (왕알을 칠 때는 아래에서 용암·판 끝까지 안 가는 세기로 줄인다)
+	local function usable(_piece: PieceInfo): boolean
+		return true
 	end
 
 	for shooterIndex, shooter in mine do

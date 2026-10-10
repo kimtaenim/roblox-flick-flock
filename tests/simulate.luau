@@ -105,10 +105,11 @@ local function step(pieces)
 					if closing > 0 then
 						-- 왕알 데미지 (상대속도 × 때린 알 질량 계수)
 						local relative = math.sqrt((a.vx - b.vx) ^ 2 + (a.vz - b.vz) ^ 2)
-						if a.kind == "King" then
+						-- 같은 편끼리는 데미지 없음 (Damage.lua 와 같은 규칙)
+						if a.kind == "King" and a.team ~= b.team then
 							a.hp -= damageFormula(relative, b.massFactor)
 						end
-						if b.kind == "King" then
+						if b.kind == "King" and a.team ~= b.team then
 							b.hp -= damageFormula(relative, a.massFactor)
 						end
 						local impulse = (1 + (a.bounce + b.bounce) / 2) * closing / (1 / a.mass + 1 / b.mass)
