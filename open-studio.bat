@@ -1,6 +1,7 @@
 @echo off
 REM ============================================================
 REM  Flick Flock - local Studio launcher
+REM  Copy this file to the Desktop and double-click it.
 REM  1. git clone (first time) / git pull (every time)
 REM  2. download Rojo + install the Rojo Studio plugin
 REM  3. build FlickFlock.rbxlx and open it in Roblox Studio
@@ -23,6 +24,7 @@ set "BRANCH=main"
 set "PORT=34872"
 set "ROJO_VERSION=7.4.4"
 set "PLACE=FlickFlock.rbxlx"
+set "ROBLOX_ACCOUNT=oompaloompa0730"
 
 REM Use the folder this .bat lives in if it is the repo,
 REM otherwise clone into %USERPROFILE%\roblox-flick-flock.
@@ -99,6 +101,9 @@ start "" "%REPO%\%PLACE%"
 echo.
 echo ============================================================
 echo  Rojo server : localhost:%PORT%
+echo  Studio account : %ROBLOX_ACCOUNT%
+echo     If Studio shows another account, log out and log in as
+echo     %ROBLOX_ACCOUNT% once. Studio remembers it after that.
 echo  In Studio   : Plugins tab - Rojo - Connect
 echo                address localhost, port %PORT%
 echo  Keep this window open while working. Ctrl+C to stop.
