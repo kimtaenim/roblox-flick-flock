@@ -15,7 +15,9 @@ local BoardShape = require("../src/shared/BoardShape")
 local setup = BoardShape.makeSetup(Config, "Normal", "Wood", 2)
 -- 울퉁불퉁 바닥의 혹 (움직이지 않는 동그라미 장애물) { x, z, r }
 local bumps: { { x: number, z: number, r: number } } = {}
-BUMP_TOTAL, BUMP_BOARDS = 0, 0
+-- 구덩이 (가운데로 끌어당기고 느리게) { x, z, r }
+local dips: { { x: number, z: number, r: number } } = {}
+TERRAIN = { boards = 0, bumps = 0, mounds = 0, dips = 0, settled = 0, turns = 0 }
 local GRAVITY = 196.2
 local DT = 1 / 240
 local MAX_TURNS = 300
@@ -124,6 +126,26 @@ local function step(pieces)
 			end
 		end
 	end
+	-- 구덩이 : GameManager 처럼 가운데로 끌어당기고 느리게
+	local dipInfo = Config.Floors.Bumpy.Dips
+	for _, dip in dips do
+		for _, p in pieces do
+			if p.alive then
+				local ox, oz = dip.x - p.x, dip.z - p.z
+				local distance = math.sqrt(ox * ox + oz * oz)
+				if distance < dip.r then
+					local slow = math.max(1 - dipInfo.Damping * DT, 0)
+					p.vx *= slow
+					p.vz *= slow
+					if distance > 0.2 then
+						local pull = dipInfo.Pull * DT * (distance / dip.r)
+						p.vx += ox / distance * pull
+						p.vz += oz / distance * pull
+					end
+				end
+			end
+		end
+	end
 	-- 혹에 부딪히면 튕겨 나온다 (혹은 안 움직임)
 	for _, bump in bumps do
 		for _, p in pieces do
@@ -198,23 +220,31 @@ local function playGame(seed: number, presets: { number }, sizeKey: string?, flo
 		layoutTeam(team, teamCount, BoardShape.adaptPreset(Config, setup, Config.PresetTeams[preset].Pieces), pieces)
 	end
 
-	-- 울퉁불퉁이면 Board.addBumps 처럼 알 사이 빈 자리에 혹
+	-- 울퉁불퉁이면 Board.addTerrain 처럼 알 사이 빈 자리에 언덕·구덩이·혹
 	table.clear(bumps)
+	table.clear(dips)
 	local floor = Config.Floors[setup.floorKey]
-	if floor.BumpCount then
+	if floor.Bumps then
 		local occupied = {}
 		for _, p in pieces do
 			table.insert(occupied, { p.x, p.z, p.radius })
 		end
-		local bumpRng = makeRandom(seed + 99)
-		local footprint = BoardShape.bumpFootprint(floor.BumpRadius, floor.BumpHeight)
-		for _, spot in BoardShape.bumpSpots(setup.shape, floor.BumpCount, floor.BumpRadius, occupied, function(low, high)
-			return bumpRng:NextNumber(low, high)
-		end) do
+		local terrainRng = makeRandom(seed + 99)
+		local terrain = BoardShape.terrain(setup.shape, floor, occupied, function(low, high)
+			return terrainRng:NextNumber(low, high)
+		end)
+		local footprint = BoardShape.bumpFootprint(floor.Bumps.Radius, floor.Bumps.Height)
+		for _, spot in terrain.bumps do
 			table.insert(bumps, { x = spot.x, z = spot.z, r = footprint })
 		end
-		BUMP_TOTAL += #bumps
-		BUMP_BOARDS += 1
+		for _, spot in terrain.dips do
+			table.insert(dips, { x = spot.x, z = spot.z, r = floor.Dips.Radius })
+		end
+		-- 언덕은 넘어갈 수 있어서 2D 시뮬레이션에서는 개수만 센다
+		TERRAIN.boards += 1
+		TERRAIN.bumps += #terrain.bumps
+		TERRAIN.mounds += #terrain.mounds
+		TERRAIN.dips += #terrain.dips
 	end
 
 	-- 시작 배치가 겹치거나 판 밖이면 안 된다
@@ -275,6 +305,18 @@ local function playGame(seed: number, presets: { number }, sizeKey: string?, flo
 			p.vx, p.vz = 0, 0
 		end
 
+		if #dips > 0 then
+			TERRAIN.turns += 1
+			for _, p in pieces do
+				if p.alive then
+					for _, dip in dips do
+						if math.sqrt((p.x - dip.x) ^ 2 + (p.z - dip.z) ^ 2) < dip.r * 0.6 then
+							TERRAIN.settled += 1
+						end
+					end
+				end
+			end
+		end
 		-- 진 팀 탈락 (GameManager.knockOut 과 같은 규칙 : 남은 알도 치운다)
 		for checkTeam = 1, teamCount do
 			if not out[checkTeam] then
@@ -401,9 +443,17 @@ for _, sizeKey in sizeKeys do
 				table.insert(counts, tostring(#BoardShape.adaptPreset(Config, countSetup, preset.Pieces)))
 			end
 			print(string.format("  %s %d팀 [알 %s] : %s", Config.BoardSizes[sizeKey].Name, teamCount, table.concat(counts, "/"), table.concat(line, " · ")))
-			if BUMP_BOARDS > 0 then
-				print(string.format("      울퉁불퉁 혹 : 평균 %.1f개 놓임 (목표 %d개)", BUMP_TOTAL / BUMP_BOARDS, Config.Floors.Bumpy.BumpCount))
-				BUMP_TOTAL, BUMP_BOARDS = 0, 0
+			if TERRAIN.boards > 0 then
+				local info = Config.Floors.Bumpy
+				print(string.format(
+					"      울퉁불퉁 : 혹 %.1f · 언덕 %.1f · 구덩이 %.1f 놓임 (보통 판 기준 %d·%d·%d), 턴이 끝날 때 구덩이 가운데에 고인 알 판마다 평균 %.1f개",
+					TERRAIN.bumps / TERRAIN.boards,
+					TERRAIN.mounds / TERRAIN.boards,
+					TERRAIN.dips / TERRAIN.boards,
+					info.Bumps.Count, info.Mounds.Count, info.Dips.Count,
+					TERRAIN.settled / math.max(TERRAIN.turns, 1)
+				))
+				TERRAIN = { boards = 0, bumps = 0, mounds = 0, dips = 0, settled = 0, turns = 0 }
 			end
 		end
 	end

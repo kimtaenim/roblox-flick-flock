@@ -207,6 +207,40 @@ function BoardShape.bumpFootprint(bumpRadius: number, bumpHeight: number): numbe
 	return math.sqrt(math.max(bumpRadius * bumpRadius - below * below, 0))
 end
 
+-- 울퉁불퉁 바닥 지형 자리 : 언덕 → 구덩이 → 혹 순서로, 알과 서로에게서 떨어진 곳에
+-- floor = Config.Floors.Bumpy, occupied = 알 { { x, z, r } }
+-- 돌려주는 것 : { mounds = { {x,z} }, dips = { {x,z} }, bumps = { {x,z} } }
+function BoardShape.terrain(
+	shape: Shape,
+	floor,
+	occupied: { { number } },
+	nextNumber: (number, number) -> number
+): { mounds: { { x: number, z: number } }, dips: { { x: number, z: number } }, bumps: { { x: number, z: number } } }
+	local taken = table.clone(occupied)
+	local result = { mounds = {}, dips = {}, bumps = {} }
+	-- 개수는 보통 판(64) 넓이 기준 : 작은 판은 적게, 큰 판은 많게
+	local areaScale = (shape.size / 64) ^ 2
+	local kinds = {
+		{ key = "mounds", info = floor.Mounds, round = true },
+		{ key = "dips", info = floor.Dips, round = false },
+		{ key = "bumps", info = floor.Bumps, round = true },
+	}
+	for _, kind in kinds do
+		local info = kind.info
+		local count = if info then math.max(1, math.floor(info.Count * areaScale + 0.5)) else 0
+		if info and count > 0 then
+			-- 판 윗면에서 차지하는 동그라미 크기로 자리를 잡는다
+			local radius = if kind.round then BoardShape.bumpFootprint(info.Radius, info.Height) else info.Radius
+			local spots = BoardShape.bumpSpots(shape, count, radius, taken, nextNumber)
+			for _, spot in spots do
+				table.insert(taken, { spot.x, spot.z, radius })
+			end
+			result[kind.key] = spots
+		end
+	end
+	return result
+end
+
 ---------------------------------------------------------------- 판 설정 한 묶음
 -- 이번 판의 모양·크기·바닥·팀 배치. 서버(Board), 화면(팀 고르기), 시뮬레이션이 모두 이걸 써서 같은 판을 본다.
 -- config = Config 모듈

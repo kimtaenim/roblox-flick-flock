@@ -16,14 +16,14 @@
 - 2인 테스트: Test → Clients and Servers → 2 Players. 혼자 Play 하면 파랑은 NPC (`Config.SoloMode`).
 
 ## 테스트 (Studio 없이)
-- `sh tests/simulate.sh` : 진짜 Config 숫자로 NPC 대전 (튕기기만, 능력 제외). 2팀 추천 팀 조합 160판 + 3팀·4팀 각 100판 + 판 크기·모양 × 바닥(나무·얼음·화산·울퉁불퉁·체스·장기·바둑) × 팀 수 각 20판. 울퉁불퉁은 Board 와 같은 혹 배치(BoardShape.bumpSpots)를 움직이지 않는 장애물로 넣음. 시작 배치 겹침, 승패가 나는지, 팀·자리별 승리 수 출력.
+- `sh tests/simulate.sh` : 진짜 Config 숫자로 NPC 대전 (튕기기만, 능력 제외). 2팀 추천 팀 조합 160판 + 3팀·4팀 각 100판 + 판 크기·모양 × 바닥(나무·얼음·화산·울퉁불퉁·체스·장기·바둑) × 팀 수 각 20판. 울퉁불퉁은 Board 와 같은 지형 배치(BoardShape.terrain)로 혹은 장애물, 구덩이는 끌어당김으로 넣고 고인 알 수를 셈 (언덕은 2D 라서 개수만). 시작 배치 겹침, 승패가 나는지, 팀·자리별 승리 수 출력.
 - 타입 검사: `rojo sourcemap -o sourcemap.json` 후 `luau-lsp analyze --definitions=@roblox=globalTypes.d.luau --sourcemap=sourcemap.json src`
 
 ## 코드 위치
 | 파일 | 역할 |
 | --- | --- |
 | `src/server/GameManager.server.lua` | 팀 고르기·턴 진행, 요청 검증, 능력 효과 턴 관리, 승패 |
-| `src/server/Board.lua` | 판 생성 (모양·크기·바닥, 용암 구멍, 울퉁불퉁 혹) |
+| `src/server/Board.lua` | 판 생성 (모양·크기·바닥, 용암 구멍, 울퉁불퉁 혹·언덕·구덩이) |
 | `src/server/PieceFactory.lua` | 알 생성 (Config.Pieces 다섯 값), 눈·왕관, HP 막대, 거대화 |
 | `src/server/Placement.lua` | 팀 배치, 빈 자리 찾기 |
 | `src/server/Damage.lua` | 왕알 HP (충돌 데미지) |

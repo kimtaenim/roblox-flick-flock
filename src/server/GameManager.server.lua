@@ -187,6 +187,28 @@ end
 local steppedInPoop: { [BasePart]: { [BasePart]: boolean } } = {}
 local lastFootprint: { [BasePart]: number } = {}
 
+-- 구덩이 : 알이 움직이는 동안 구덩이 안에 들어오면 가운데로 끌려가고 느려진다 (고임)
+RunService.Heartbeat:Connect(function(dt)
+	local dipInfo = Config.Floors[Board.setup.floorKey].Dips
+	if not dipInfo or #Board.dips == 0 or state:GetAttribute("Phase") ~= "Moving" then
+		return
+	end
+	for _, piece in piecesFolder:GetChildren() do
+		if piece:IsA("BasePart") and not piece.Anchored then
+			for _, dip in Board.dips do
+				local offset = Vector3.new(dip.x - piece.Position.X, 0, dip.z - piece.Position.Z)
+				local distance = offset.Magnitude
+				if distance < dip.r then
+					local velocity = piece.AssemblyLinearVelocity
+					local pull = if distance > 0.2 then offset.Unit * dipInfo.Pull * dt * (distance / dip.r) else Vector3.zero
+					local slow = math.max(1 - dipInfo.Damping * dt, 0)
+					piece.AssemblyLinearVelocity = Vector3.new(velocity.X * slow, velocity.Y, velocity.Z * slow) + pull
+				end
+			end
+		end
+	end
+end)
+
 RunService.Heartbeat:Connect(function()
 	-- 판 밖으로 나간 알은 바로 탈락
 	local function sayGoodbye(piece: BasePart)
@@ -722,8 +744,8 @@ local function setupPieces()
 			watchPiece(piece)
 		end
 	end
-	-- 울퉁불퉁 바닥이면 알 사이 빈 자리에 혹
-	Board.addBumps(piecesFolder)
+	-- 울퉁불퉁 바닥이면 알 사이 빈 자리에 언덕·구덩이·혹
+	Board.addTerrain(piecesFolder)
 end
 
 -- 모든 알이 멈출 때까지 기다린다

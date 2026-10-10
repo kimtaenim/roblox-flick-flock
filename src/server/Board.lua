@@ -287,11 +287,30 @@ function Board.build(teamCount: number, sizeKey: string?, floorKey: string?): Mo
 	return board
 end
 
--- 울퉁불퉁 바닥 : 알을 놓은 뒤에 빈 자리에 혹을 심는다 (판 밑에 공을 묻어서 위만 솟게)
-function Board.addBumps(piecesFolder: Instance)
+-- 울퉁불퉁 바닥의 구덩이 (GameManager 가 알을 끌어당기는 데 쓴다) { x, z, r }
+Board.dips = {} :: { { x: number, z: number, r: number } }
+
+-- 판 밑에 공을 묻어서 위만 솟게 (혹·언덕)
+local function makeMound(name: string, x: number, z: number, info, color: Color3, material: Enum.Material, parent: Instance)
+	local part = Instance.new("Part")
+	part.Name = name
+	part.Shape = Enum.PartType.Ball
+	part.Anchored = true
+	part.CanQuery = false
+	part.Size = Vector3.one * info.Radius * 2
+	part.Position = Vector3.new(x, Config.BoardHeight - info.Radius + info.Height, z)
+	part.Color = color
+	part.Material = material
+	part.CustomPhysicalProperties = PhysicalProperties.new(0.7, Board.setup.friction, 0.3, 1, 1)
+	part.Parent = parent
+end
+
+-- 울퉁불퉁 바닥 : 알을 놓은 뒤 빈 자리에 언덕·구덩이·혹을 만든다
+function Board.addTerrain(piecesFolder: Instance)
+	Board.dips = {}
 	local floor = floorInfo()
 	local board = workspace:FindFirstChild("Board")
-	if not floor.BumpCount or not board then
+	if not (floor.Bumps or floor.Mounds or floor.Dips) or not board then
 		return
 	end
 	local random = Random.new()
@@ -301,21 +320,32 @@ function Board.addBumps(piecesFolder: Instance)
 			table.insert(occupied, { piece.Position.X, piece.Position.Z, piece.Size.Y / 2 })
 		end
 	end
-	local spots = BoardShape.bumpSpots(Board.shape, floor.BumpCount, floor.BumpRadius, occupied, function(low, high)
+	local terrain = BoardShape.terrain(Board.shape, floor, occupied, function(low, high)
 		return random:NextNumber(low, high)
 	end)
-	for _, spot in spots do
-		local bump = Instance.new("Part")
-		bump.Name = "Bump"
-		bump.Shape = Enum.PartType.Ball
-		bump.Anchored = true
-		bump.CanQuery = false
-		bump.Size = Vector3.one * floor.BumpRadius * 2
-		bump.Position = Vector3.new(spot.x, Config.BoardHeight - floor.BumpRadius + floor.BumpHeight, spot.z)
-		bump.Color = floor.Color:Lerp(Color3.new(0, 0, 0), 0.25)
-		bump.Material = Enum.Material.Rock
-		bump.CustomPhysicalProperties = PhysicalProperties.new(0.7, Board.setup.friction, 0.3, 1, 1)
-		bump.Parent = board
+
+	for _, spot in terrain.mounds do
+		makeMound("Mound", spot.x, spot.z, floor.Mounds, floor.Color:Lerp(Color3.fromRGB(110, 150, 80), 0.35), Enum.Material.Grass, board)
+	end
+	for _, spot in terrain.bumps do
+		makeMound("Bump", spot.x, spot.z, floor.Bumps, floor.Color:Lerp(Color3.new(0, 0, 0), 0.3), Enum.Material.Rock, board)
+	end
+	-- 구덩이 : 어둡게 패인 것처럼 겹친 동그라미 (바깥은 연하게, 가운데는 진하게)
+	for _, spot in terrain.dips do
+		local radius = floor.Dips.Radius
+		for ring = 0, 2 do
+			local ringRadius = radius * (1 - ring * 0.3)
+			local shade = floor.Color:Lerp(Color3.new(0, 0, 0), 0.2 + ring * 0.15)
+			makeDecal(
+				"Dip",
+				Vector3.new(0.05, ringRadius * 2, ringRadius * 2),
+				CFrame.new(spot.x, Config.BoardHeight + 0.02 + ring * 0.005, spot.z) * CFrame.Angles(0, 0, math.rad(90)),
+				shade,
+				board,
+				Enum.PartType.Cylinder
+			)
+		end
+		table.insert(Board.dips, { x = spot.x, z = spot.z, r = radius })
 	end
 end
 
