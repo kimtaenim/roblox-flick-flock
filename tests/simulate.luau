@@ -10,7 +10,6 @@ local Npc = require("../src/server/Npc")
 
 local BOARD_HALF = Config.BoardSize / 2
 local GRAVITY = 196.2
-local SLIDE_SLOW = Config.BoardFriction * GRAVITY
 local DT = 1 / 240
 local MAX_TURNS = 120
 
@@ -45,7 +44,8 @@ local function makePiece(kind: string, team: number, x: number, z: number)
 		mass = info.mass * Config.MassUnit,
 		massFactor = info.mass,
 		radius = Config.PieceDiameter * info.size / 2,
-		slow = if info.rollSlow > 0 then info.rollSlow else SLIDE_SLOW,
+		slow = (info.friction + Config.BoardFriction) / 2 * GRAVITY, -- GameManager.slowOf 와 같은 식
+		bounce = info.bounce,
 		hp = info.hp,
 	}
 end
@@ -108,7 +108,7 @@ local function step(pieces)
 						if b.kind == "King" then
 							b.hp -= damageFormula(relative, a.massFactor)
 						end
-						local impulse = (1 + Config.PieceElasticity) * closing / (1 / a.mass + 1 / b.mass)
+						local impulse = (1 + (a.bounce + b.bounce) / 2) * closing / (1 / a.mass + 1 / b.mass)
 						a.vx -= impulse / a.mass * nx
 						a.vz -= impulse / a.mass * nz
 						b.vx += impulse / b.mass * nx
@@ -165,7 +165,7 @@ local function loseReason(pieces, team: number): string?
 end
 
 local function infoOf(p)
-	return { x = p.x, z = p.z, mass = p.mass, radius = p.radius, slow = if p.slow ~= SLIDE_SLOW then p.slow else nil }
+	return { x = p.x, z = p.z, mass = p.mass, radius = p.radius, slow = p.slow, bounce = p.bounce }
 end
 
 local function playGame(seed: number, presetRed: number, presetBlue: number)
@@ -201,7 +201,7 @@ local function playGame(seed: number, presetRed: number, presetBlue: number)
 			boardHalf = BOARD_HALF,
 			gravity = GRAVITY,
 			friction = Config.BoardFriction,
-			elasticity = Config.PieceElasticity,
+			elasticity = Config.Pieces.Flat.bounce,
 			flickPower = Config.FlickPower,
 			powerBoost = Config.NpcPowerBoost,
 			aimErrorDegrees = Config.NpcAimErrorDegrees,

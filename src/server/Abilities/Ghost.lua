@@ -3,7 +3,7 @@ local Ability = {}
 
 function Ability.Execute(piece: BasePart, context)
 	piece.CollisionGroup = context.GHOST_GROUP
-	piece.Transparency = 0.6
+	context.PieceFactory.setTransparency(piece, 0.6)
 	context.Effects.sparkle(piece.Position, Color3.fromRGB(230, 230, 255), 20)
 	context.startEffect(piece, "Ghost")
 end
@@ -11,7 +11,7 @@ end
 function Ability.OnTurnEnd(piece: BasePart)
 	local PieceFactory = require(script.Parent.Parent:WaitForChild("PieceFactory"))
 	piece.CollisionGroup = PieceFactory.COLLISION_GROUP
-	piece.Transparency = 0
+	PieceFactory.setTransparency(piece, 0)
 end
 
 return Ability

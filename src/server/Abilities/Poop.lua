@@ -58,24 +58,11 @@ local function buildPoop(piece: BasePart, context)
 	folder.Parent = piece
 end
 
--- 원래 알·눈·능력표 숨기기 / 보이기
-local function setOriginalVisible(piece: BasePart, visible: boolean)
-	piece.Transparency = if visible then 0 else 1
-	local look = piece:FindFirstChild("Look")
-	if look then
-		for _, part in look:GetChildren() do
-			if part:IsA("BasePart") then
-				part.Transparency = if visible then 0 else 1
-			end
-		end
-	end
-end
-
 function Ability.Execute(piece: BasePart, context)
 	piece.AssemblyLinearVelocity = Vector3.zero
 	piece.AssemblyAngularVelocity = Vector3.zero
 	piece.CollisionGroup = context.GHOST_GROUP
-	setOriginalVisible(piece, false)
+	context.PieceFactory.setTransparency(piece, 1)
 	buildPoop(piece, context)
 	context.startEffect(piece, "Poop")
 end
@@ -86,7 +73,7 @@ function Ability.OnTurnEnd(piece: BasePart)
 	if poopLook then
 		poopLook:Destroy()
 	end
-	setOriginalVisible(piece, true)
+	PieceFactory.setTransparency(piece, 0)
 	piece.CollisionGroup = PieceFactory.COLLISION_GROUP
 end
 

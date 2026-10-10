@@ -2,7 +2,7 @@
 local Config = {}
 
 -- 판
-Config.BoardSize = 48 -- 판 한 변 길이 (스터드)
+Config.BoardSize = 64 -- 판 한 변 길이 (스터드)
 Config.BoardThickness = 2
 Config.BoardHeight = 6 -- 판 윗면 높이
 Config.BoardColor = Color3.fromRGB(196, 154, 108)
@@ -12,17 +12,17 @@ Config.FallDepth = 3 -- 판 윗면보다 이만큼 아래로 떨어지면 탈락
 -- 알 공통
 Config.PieceDiameter = 4 -- 크기 1 알의 지름
 Config.FlatHeight = 1 -- 크기 1 납작 알의 두께
+Config.RoundHeight = 1.8 -- 크기 1 둥근 알의 높이 (볼록한 정도)
 Config.MassUnit = 10 -- 질량 1 = 실제 무게 몇
-Config.PieceFriction = 0.3
-Config.PieceElasticity = 0.4 -- 튕김 정도 (0~1)
 
--- 알 종류 : 다섯 값 (shape, size, mass, hp, ability) + 굴러가다 멈추는 힘(rollSlow)
--- shape : "Flat" 납작 원기둥 / "Round" 공
+-- 알 종류 : 다섯 값 (shape, size, mass, hp, ability) + 미끄러움(friction)·튕김(bounce)
+-- shape : "Flat" 납작 원기둥 / "Round" 볼록한 타원체 (바둑알처럼)
+-- friction 이 작을수록 멀리 가고, bounce 가 클수록 세게 튄다 (0~1)
 Config.Pieces = {
-	King = { shape = "Flat", size = 2, mass = 4, hp = 100, ability = nil, rollSlow = 0 }, -- 왕알
-	Flat = { shape = "Flat", size = 1, mass = 1, hp = 0, ability = nil, rollSlow = 0 }, -- 납작 알
-	Round = { shape = "Round", size = 1, mass = 1, hp = 0, ability = nil, rollSlow = 40 }, -- 둥근 알
-	Half = { shape = "Round", size = 0.5, mass = 0.5, hp = 0, ability = nil, rollSlow = 45 }, -- 0.5 알
+	King = { shape = "Flat", size = 2, mass = 4, hp = 100, ability = nil, friction = 0.3, bounce = 0.4 }, -- 왕알
+	Flat = { shape = "Flat", size = 1, mass = 1, hp = 0, ability = nil, friction = 0.3, bounce = 0.4 }, -- 납작 알
+	Round = { shape = "Round", size = 1, mass = 1, hp = 0, ability = nil, friction = 0.1, bounce = 0.7 }, -- 둥근 알
+	Half = { shape = "Round", size = 0.5, mass = 0.5, hp = 0, ability = nil, friction = 0.12, bounce = 0.7 }, -- 0.5 알
 }
 Config.CanFlickKing = true -- 왕알도 튕길 수 있음 (무거워서 멀리 안 감)
 
@@ -36,8 +36,8 @@ Config.Teams = {
 	{ Name = "빨강", Color = Color3.fromRGB(226, 70, 70) },
 	{ Name = "파랑", Color = Color3.fromRGB(64, 120, 230) },
 }
-Config.KingRowDistance = 18 -- 판 가운데에서 왕알까지
-Config.RowDistances = { 6, 11 } -- 판 가운데에서 알 줄까지 (앞줄, 뒷줄)
+Config.KingRowDistance = 22 -- 판 가운데에서 왕알까지
+Config.RowDistances = { 9, 14 } -- 판 가운데에서 알 줄까지 (앞줄, 뒷줄)
 Config.PieceSpacing = 6 -- 한 줄 안 알 사이 간격
 Config.PiecesPerRow = 7
 
@@ -110,9 +110,9 @@ Config.NpcPowerBoost = 1.25 -- 계산한 세기보다 이만큼 세게 (클수�
 Config.NpcAbilityChance = 0.35 -- 능력 알이 있을 때 능력을 쓸 확률
 
 -- 카메라
-Config.CameraDistance = 38 -- 처음 카메라 거리 (작을수록 크게 보임)
+Config.CameraDistance = 50 -- 처음 카메라 거리 (작을수록 크게 보임)
 Config.CameraMinDistance = 14
-Config.CameraMaxDistance = 90
+Config.CameraMaxDistance = 120
 Config.CameraPitch = 55 -- 내려다보는 각도 (도). 90 = 바로 위
 Config.CameraMinPitch = 20
 Config.CameraMaxPitch = 85

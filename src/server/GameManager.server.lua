@@ -152,7 +152,7 @@ end
 local steppedInPoop: { [BasePart]: { [BasePart]: boolean } } = {}
 local lastFootprint: { [BasePart]: number } = {}
 
-RunService.Heartbeat:Connect(function(dt)
+RunService.Heartbeat:Connect(function()
 	-- 판 밖으로 나간 알은 바로 탈락
 	for _, removed in Elimination.removeOutPieces(piecesFolder) do
 		Effects.sound("Out")
@@ -163,22 +163,6 @@ RunService.Heartbeat:Connect(function(dt)
 	local poops = {}
 	for _, piece in piecesFolder:GetChildren() do
 		if piece:IsA("BasePart") then
-			-- 둥근 알은 구르다가 천천히 멈춘다 (로블록스 공은 마찰로 안 멈춤)
-			local info = Config.Pieces[piece:GetAttribute("Kind")]
-			if info and info.rollSlow > 0 and not piece.Anchored then
-				local velocity = piece.AssemblyLinearVelocity
-				local flat = Vector3.new(velocity.X, 0, velocity.Z)
-				local speed = flat.Magnitude
-				if speed > 0.01 then
-					local newSpeed = math.max(speed - info.rollSlow * dt, 0)
-					local ratio = newSpeed / speed
-					piece.AssemblyLinearVelocity = Vector3.new(velocity.X * ratio, velocity.Y, velocity.Z * ratio)
-					piece.AssemblyAngularVelocity *= ratio
-				else
-					-- 제자리에서 도는 공도 멈춘다
-					piece.AssemblyAngularVelocity *= math.max(1 - 5 * dt, 0)
-				end
-			end
 			if piece:GetAttribute("Effect") == "Poop" then
 				table.insert(poops, piece)
 			end
@@ -349,21 +333,22 @@ end)
 
 ---------------------------------------------------------------- NPC
 
-local function slowOf(piece: BasePart): number?
-	local info = Config.Pieces[piece:GetAttribute("Kind")]
-	if info and info.rollSlow > 0 then
-		return info.rollSlow
-	end
-	return nil
+-- 미끄러지며 초당 줄어드는 속도 = (알 마찰 + 판 마찰) / 2 × 중력
+local function slowOf(piece: BasePart): number
+	local info = Config.Pieces[piece:GetAttribute("Kind") :: string]
+	local friction = if info then info.friction else Config.BoardFriction
+	return (friction + Config.BoardFriction) / 2 * workspace.Gravity
 end
 
 local function toInfo(piece: BasePart): Npc.PieceInfo
+	local info = Config.Pieces[piece:GetAttribute("Kind") :: string]
 	return {
 		x = piece.Position.X,
 		z = piece.Position.Z,
 		mass = piece.AssemblyMass,
 		radius = PieceFactory.radius(piece),
 		slow = slowOf(piece),
+		bounce = if info then info.bounce else nil,
 	}
 end
 
@@ -425,7 +410,7 @@ local function playNpcTurn(team: number)
 		boardHalf = Config.BoardSize / 2,
 		gravity = workspace.Gravity,
 		friction = Config.BoardFriction,
-		elasticity = Config.PieceElasticity,
+		elasticity = Config.Pieces.Flat.bounce,
 		flickPower = Config.FlickPower,
 		powerBoost = Config.NpcPowerBoost,
 		aimErrorDegrees = Config.NpcAimErrorDegrees,

@@ -9,15 +9,19 @@ function Ability.Execute(piece: BasePart, context)
 	piece.AssemblyAngularVelocity = Vector3.zero
 	piece.Anchored = true
 	context.PieceFactory.setElasticity(piece, Config.MagnetElasticity)
-	piece.Material = Enum.Material.DiamondPlate
+	for _, part in context.PieceFactory.bodyParts(piece) do
+		part.Material = Enum.Material.DiamondPlate
+	end
 	context.startEffect(piece, "Magnet")
 end
 
 function Ability.OnTurnEnd(piece: BasePart)
 	-- 효과가 끝날 때 (GameManager 가 남은 턴이 0 이 되면 부른다)
 	piece.Anchored = false
-	piece.Material = Enum.Material.SmoothPlastic
 	local PieceFactory = require(script.Parent.Parent:WaitForChild("PieceFactory"))
+	for _, part in PieceFactory.bodyParts(piece) do
+		part.Material = Enum.Material.SmoothPlastic
+	end
 	PieceFactory.setElasticity(piece, nil)
 	piece:SetNetworkOwner(nil)
 end

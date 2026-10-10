@@ -8,14 +8,13 @@ local PieceFactory = {}
 
 PieceFactory.COLLISION_GROUP = "Pieces"
 
--- 알 크기 (스터드). 납작 알은 (두께, 지름), 둥근 알은 (지름, 지름)
+-- 모든 알은 몸통(물리)이 납작한 원기둥이다. 둥근 알은 그 위에 볼록한 겉모양을 씌운다.
+-- 알 크기 (스터드) : (높이, 지름)
 local function dimensions(kind: string, scale: number): (number, number)
 	local info = Config.Pieces[kind]
 	local diameter = Config.PieceDiameter * info.size * scale
-	if info.shape == "Flat" then
-		return Config.FlatHeight * info.size * scale, diameter
-	end
-	return diameter, diameter
+	local height = if info.shape == "Flat" then Config.FlatHeight else Config.RoundHeight
+	return height * info.size * scale, diameter
 end
 
 -- 알 반지름
@@ -23,17 +22,14 @@ function PieceFactory.radius(piece: BasePart): number
 	return piece.Size.Y / 2
 end
 
-local function isFlat(piece: BasePart): boolean
+local function isRound(piece: BasePart): boolean
 	local info = Config.Pieces[piece:GetAttribute("Kind") :: string]
-	return info ~= nil and info.shape == "Flat"
+	return info ~= nil and info.shape == "Round"
 end
 
--- 알 높이의 절반 (바닥에서 가운데까지)
+-- 알 높이의 절반 (바닥에서 가운데까지). 원기둥은 X축이 높이.
 function PieceFactory.halfHeight(piece: BasePart): number
-	if isFlat(piece) then
-		return piece.Size.X / 2
-	end
-	return piece.Size.Y / 2
+	return piece.Size.X / 2
 end
 
 -- 때린 알의 질량 계수 (데미지 계산용)
@@ -45,22 +41,40 @@ end
 
 local function setPhysics(piece: BasePart, kind: string, massScale: number, elasticity: number?)
 	local info = Config.Pieces[kind]
-	local volume
-	if info.shape == "Flat" then
-		volume = math.pi * (piece.Size.Y / 2) ^ 2 * piece.Size.X
-	else
-		volume = 4 / 3 * math.pi * (piece.Size.Y / 2) ^ 3
-	end
+	local volume = math.pi * (piece.Size.Y / 2) ^ 2 * piece.Size.X
 	-- 질량이 Config 값과 같도록 밀도를 맞춘다
 	local density = math.clamp(info.mass * Config.MassUnit * massScale / volume, 0.01, 100)
-	local bounce = elasticity or Config.PieceElasticity
+	local bounce = elasticity or info.bounce
 	-- 튕김이 크게 바뀐 알(자석)은 상대 알보다 튕김 비중을 크게
 	local bounceWeight = if elasticity then 100 else 1
-	piece.CustomPhysicalProperties = PhysicalProperties.new(density, Config.PieceFriction, bounce, 1, bounceWeight)
+	piece.CustomPhysicalProperties = PhysicalProperties.new(density, info.friction, bounce, 1, bounceWeight)
 end
 
 function PieceFactory.setElasticity(piece: BasePart, elasticity: number?)
 	setPhysics(piece, piece:GetAttribute("Kind") :: string, (piece:GetAttribute("MassScale") :: number?) or 1, elasticity)
+end
+
+-- 눈에 보이는 몸통 파트들 (둥근 알은 겉모양, 납작 알은 자기 자신)
+function PieceFactory.bodyParts(piece: BasePart): { BasePart }
+	local look = piece:FindFirstChild("Look")
+	local body = look and look:FindFirstChild("Body")
+	if body and body:IsA("BasePart") then
+		return { body }
+	end
+	return { piece }
+end
+
+-- 알 전체 투명도 (유령·똥알에서 씀). 0 = 보통, 1 = 안 보임
+function PieceFactory.setTransparency(piece: BasePart, transparency: number)
+	piece.Transparency = if isRound(piece) then 1 else transparency
+	local look = piece:FindFirstChild("Look")
+	if look then
+		for _, part in look:GetChildren() do
+			if part:IsA("BasePart") then
+				part.Transparency = transparency
+			end
+		end
+	end
 end
 
 local function makeDecoration(name: string, size: Vector3, color: Color3, cframe: CFrame, piece: BasePart, folder: Instance)
@@ -98,11 +112,31 @@ function PieceFactory.decorate(piece: BasePart)
 	local radius = PieceFactory.radius(piece)
 	local center = piece.Position
 
+	local height = PieceFactory.halfHeight(piece) * 2
 	local eyeBase
-	if isFlat(piece) then
-		eyeBase = center + up * PieceFactory.halfHeight(piece) + forward * radius * 0.45
+	if isRound(piece) then
+		-- 볼록한 겉모양 (공 모양 메시를 납작하게 눌러서)
+		local body = Instance.new("Part")
+		body.Name = "Body"
+		body.Size = Vector3.new(radius * 2, height, radius * 2)
+		body.CFrame = CFrame.new(center)
+		body.Color = piece.Color
+		body.Material = Enum.Material.SmoothPlastic
+		body.CanCollide = false
+		body.CanQuery = false
+		body.CanTouch = false
+		body.Massless = true
+		local mesh = Instance.new("SpecialMesh")
+		mesh.MeshType = Enum.MeshType.Sphere
+		mesh.Parent = body
+		body.Parent = folder
+		local weld = Instance.new("WeldConstraint")
+		weld.Part0 = piece
+		weld.Part1 = body
+		weld.Parent = body
+		eyeBase = center + up * height * 0.28 + forward * radius * 0.62
 	else
-		eyeBase = center + forward * radius * 0.8 + up * radius * 0.4
+		eyeBase = center + up * height / 2 + forward * radius * 0.45
 	end
 	local eyeSize = radius * 0.45
 	for _, sign in { -1, 1 } do
@@ -213,16 +247,13 @@ function PieceFactory.create(kind: string, team: number, groundPosition: Vector3
 
 	local piece = Instance.new("Part")
 	piece.Name = Config.Teams[team].Name .. "_" .. kind
-	local first, diameter = dimensions(kind, 1)
-	if info.shape == "Flat" then
-		-- 원기둥은 X축이 길이 방향이라 Z축으로 90도 돌려 눕힌다
-		piece.Shape = Enum.PartType.Cylinder
-		piece.Size = Vector3.new(first, diameter, diameter)
-		piece.CFrame = CFrame.new(groundPosition + Vector3.new(0, first / 2 + 0.05, 0)) * CFrame.Angles(0, 0, math.rad(90))
-	else
-		piece.Shape = Enum.PartType.Ball
-		piece.Size = Vector3.one * diameter
-		piece.CFrame = CFrame.new(groundPosition + Vector3.new(0, diameter / 2 + 0.05, 0))
+	local height, diameter = dimensions(kind, 1)
+	-- 원기둥은 X축이 길이 방향이라 Z축으로 90도 돌려 눕힌다
+	piece.Shape = Enum.PartType.Cylinder
+	piece.Size = Vector3.new(height, diameter, diameter)
+	piece.CFrame = CFrame.new(groundPosition + Vector3.new(0, height / 2 + 0.05, 0)) * CFrame.Angles(0, 0, math.rad(90))
+	if info.shape == "Round" then
+		piece.Transparency = 1 -- 겉모양(Body)만 보인다
 	end
 
 	piece:SetAttribute("Team", team)

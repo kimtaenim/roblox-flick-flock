@@ -7,7 +7,8 @@
 local Npc = {}
 
 -- slow : 미끄러지거나 굴러가며 초당 줄어드는 속도 (없으면 판 마찰로 계산)
-export type PieceInfo = { x: number, z: number, mass: number, radius: number, slow: number? }
+-- bounce : 튕김 (없으면 settings.elasticity)
+export type PieceInfo = { x: number, z: number, mass: number, radius: number, slow: number?, bounce: number? }
 export type Shot = { shooter: number, target: number?, dirX: number, dirZ: number, power: number }
 
 -- 점 (x, z) 에서 방향 (dx, dz) 로 갔을 때 판 가장자리까지 거리
@@ -49,6 +50,11 @@ local function isBlocked(mine: PieceInfo, target: PieceInfo, everyone: { PieceIn
 end
 
 -- 내 알로 상대 알을 밖으로 보내려면 필요한 세기 (0~1 이 넘으면 불가능)
+-- 두 알이 부딪힐 때 튕김 (로블록스는 두 값의 평균)
+local function pairBounce(a: PieceInfo, b: PieceInfo, settings): number
+	return ((a.bounce or settings.elasticity) + (b.bounce or settings.elasticity)) / 2
+end
+
 local function powerNeeded(mine: PieceInfo, target: PieceInfo, settings): (number, number, number)
 	local dx, dz = target.x - mine.x, target.z - mine.z
 	local distance = math.sqrt(dx * dx + dz * dz)
@@ -64,7 +70,7 @@ local function powerNeeded(mine: PieceInfo, target: PieceInfo, settings): (numbe
 	local targetTravel = distanceToEdge(target.x, target.z, dx, dz, settings.boardHalf) + 1
 	local targetSpeed = math.sqrt(2 * targetSlow * targetTravel)
 	-- 부딪힐 때 상대에게 전달되는 비율 (정면 충돌)
-	local transfer = (1 + settings.elasticity) * mine.mass / (mine.mass + target.mass)
+	local transfer = (1 + pairBounce(mine, target, settings)) * mine.mass / (mine.mass + target.mass)
 	local hitSpeed = targetSpeed / transfer
 	-- 부딪히기 전까지 내 알이 가는 거리
 	local gap = math.max(distance - mine.radius - target.radius, 0)
@@ -86,7 +92,7 @@ local function shooterFallsOff(mine: PieceInfo, target: PieceInfo, power: number
 		return false
 	end
 	-- 정면 충돌 뒤 내 알 속도
-	local leftSpeed = math.sqrt(hitSpeedSq) * (mine.mass - settings.elasticity * target.mass) / (mine.mass + target.mass)
+	local leftSpeed = math.sqrt(hitSpeedSq) * (mine.mass - pairBounce(mine, target, settings) * target.mass) / (mine.mass + target.mass)
 	if leftSpeed <= 0 then
 		return false
 	end
