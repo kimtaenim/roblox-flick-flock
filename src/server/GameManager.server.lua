@@ -206,6 +206,8 @@ end)
 ---------------------------------------------------------------- 능력 효과 (몇 턴 유지)
 
 local activeEffects: { [BasePart]: { id: string, turnsLeft: number } } = {}
+-- 소환처럼 시간이 걸리는 능력이 끝날 때까지 턴을 안 넘긴다
+local busyCount = 0
 local turnEndCallbacks: { () -> () } = {}
 
 local function startEffect(piece: BasePart, id: string)
@@ -257,11 +259,23 @@ local function makeContext(team: number)
 		Placement = Placement,
 		Effects = Effects,
 		Damage = Damage,
+		Speech = Speech,
 		GHOST_GROUP = GHOST_GROUP,
 		startEffect = startEffect,
 		watchPiece = watchPiece,
 		onTurnEnd = function(callback: () -> ())
 			table.insert(turnEndCallbacks, callback)
+		end,
+		-- 오래 걸리는 연출 시작 : 끝나면 돌려받은 함수를 부른다
+		hold = function(): () -> ()
+			busyCount += 1
+			local released = false
+			return function()
+				if not released then
+					released = true
+					busyCount -= 1
+				end
+			end
 		end,
 	}
 end
@@ -571,6 +585,12 @@ end
 
 -- 모든 알이 멈출 때까지 기다린다
 local function waitUntilStopped()
+	-- 소환 연출이 끝날 때까지 (최대 20초)
+	local busyTime = 0
+	while busyCount > 0 and busyTime < 20 and not restartRequested do
+		busyTime += RunService.Heartbeat:Wait()
+	end
+	busyCount = 0
 	local stillTime = 0
 	local elapsed = 0
 	while elapsed < Config.MaxMoveTime and not restartRequested do

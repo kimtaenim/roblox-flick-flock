@@ -2,7 +2,7 @@
 -- Id 는 src/server/Abilities 폴더 안 파일 이름과 같아야 한다.
 local AbilityList = {
 	{ Id = "Explosion", Name = "폭발", Icon = "💥", Help = "내 알이 터지며 주변 알을 날려요" },
-	{ Id = "Summon", Name = "소환", Icon = "🎁", Help = "무작위 알이 하나 나와요" },
+	{ Id = "Summon", Name = "소환", Icon = "🐉", Help = "드래곤? 운석? 고래? 뭐가 나올까!" },
 	{ Id = "Clone", Name = "분신", Icon = "👯", Help = "옆에 0.5 알 2개가 생겨요" },
 	{ Id = "Giant", Name = "거대화", Icon = "🦖", Help = "내 알이 2배로 커져요" },
 	{ Id = "Teleport", Name = "텔레포트", Icon = "✨", Help = "내 알이 판 가운데로 순간이동" },

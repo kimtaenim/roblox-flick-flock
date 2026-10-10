@@ -94,11 +94,24 @@ Config.PoopSlowFactor = 0.35 -- 똥을 밟으면 속도가 이만큼으로 줄�
 Config.FootprintTime = 4 -- 똥 발자국이 남는 시간 (초)
 Config.EffectTurns = { Ghost = 2, Poop = 2, Magnet = 3 }
 -- 소환 확률 (합이 100)
+-- 소환 : 하늘에서 거창한 것이 나타나 상대 진영을 공격한다 (진짜 물체가 떨어져서 부딪힘).
+-- Chance 합은 100. Result 는 Summon.lua 안의 소환 이름.
 Config.SummonTable = {
-	{ Name = "꽝", Chance = 60, Result = "Half" },
-	{ Name = "보통", Chance = 30, Result = "Normal" }, -- 납작 또는 둥근 알
-	{ Name = "대박", Chance = 10, Result = "Ability" }, -- 능력 무작위
+	{ Name = "드래곤", Icon = "🐉", Chance = 20, Result = "Dragon" }, -- 불덩이를 퍼붓는다 (대박)
+	{ Name = "운석", Icon = "☄️", Chance = 25, Result = "Meteor" }, -- 거대한 운석이 왕알에 쾅
+	{ Name = "블리자드", Icon = "❄️", Chance = 25, Result = "Blizzard" }, -- 얼음덩이가 우수수
+	{ Name = "고래", Icon = "🐋", Chance = 20, Result = "Whale" }, -- 고래가 철퍼덕
+	{ Name = "꽝", Icon = "🐦", Chance = 10, Result = "Pigeon" }, -- 비둘기가 똥만 싸고 감
 }
+-- 소환물 : 떨어지는 물체 하나의 크기·무게·왕알 데미지
+Config.Summons = {
+	Fireball = { Size = 3, Mass = 1.5, KingDamage = 15, Count = 5 }, -- 드래곤 불덩이
+	Meteor = { Size = 8, Mass = 4, KingDamage = 40 },
+	Ice = { Size = 2.5, Mass = 1, KingDamage = 8, Count = 10 }, -- 블리자드 얼음
+	Whale = { Size = 16, Mass = 6, KingDamage = 30 },
+	PigeonPoop = { Size = 1, Mass = 0.1, KingDamage = 1 },
+}
+Config.SummonLifetime = 4 -- 떨어진 물체가 사라지기까지 (초)
 
 -- 혼자 할 때
 Config.SoloMode = "Npc" -- "Npc": 파랑은 컴퓨터 / "BothTeams": 혼자 빨강·파랑 둘 다 조종
@@ -152,6 +165,11 @@ Config.Sounds = {
 	Magnet = { Id = STEP, Pitch = { 0.4, 0.5 }, Volume = 1 },
 	Summon = { Id = JUMP, Pitch = { 1.6, 1.7 } },
 	Clone = { Id = JUMP, Pitch = { 1.9, 2.1 } },
+	Roar = { Id = OOF, Pitch = { 0.25, 0.3 }, Volume = 1 }, -- 드래곤 울음
+	Wind = { Id = SWIM, Pitch = { 0.35, 0.4 }, Volume = 1 }, -- 눈보라
+	Boom = { Id = LAND, Pitch = { 0.2, 0.25 }, Volume = 1 }, -- 운석 쾅
+	Splash = { Id = SPLASH, Pitch = { 0.6, 0.7 }, Volume = 1 }, -- 고래 철퍼덕
+	Thud = { Id = LAND, Pitch = { 0.8, 1.2 }, Volume = 0.6 }, -- 불덩이·얼음 떨어짐
 	Poop = { Id = SPLASH, Pitch = { 0.5, 0.55 }, Volume = 1 }, -- 뿌직
 	PoopStep = { Id = SPLASH, Pitch = { 0.75, 0.9 } }, -- 똥 밟음
 	-- 대사할 때 목소리
@@ -195,7 +213,7 @@ Config.Lines = {
 	-- 능력 쓸 때 (능력 알이 외친다)
 	Ability = {
 		Explosion = { "펑 간다!", "다 비켜!" },
-		Summon = { "나와라 친구야!", "얍!" },
+		Summon = { "나와라 드래곤!", "하늘이시여~!", "소환!!" },
 		Clone = { "분신술!", "나 둘! 셋!" },
 		Giant = { "커져라!", "나 엄청 크다!" },
 		Teleport = { "순간이동!", "슝!" },
