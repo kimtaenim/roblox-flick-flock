@@ -36,6 +36,18 @@ if exist "%HERE%\.git" (
     set "REPO=%USERPROFILE%\roblox-flick-flock"
 )
 
+REM Desktop shortcut named Al-kkagi (in Korean) -> open-studio.bat inside the repo.
+REM Made first, before git, so it works even if git pull fails.
+REM The PowerShell code is passed with -EncodedCommand (no quoting problems).
+REM Source of the encoded script: tools-src/make-shortcut.ps1
+echo [0/4] Making desktop shortcut ...
+set "FF_REPO=%REPO%"
+powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand JABFAHIAcgBvAHIAQQBjAHQAaQBvAG4AUAByAGUAZgBlAHIAZQBuAGMAZQAgAD0AIAAnAFMAdABvAHAAJwAKAHQAcgB5ACAAewAKACAAIAAgACAAJABkAGUAcwBrAHQAbwBwACAAPQAgAFsARQBuAHYAaQByAG8AbgBtAGUAbgB0AF0AOgA6AEcAZQB0AEYAbwBsAGQAZQByAFAAYQB0AGgAKAAnAEQAZQBzAGsAdABvAHAAJwApAAoAIAAgACAAIAAkAG4AYQBtAGUAIAA9ACAALQBqAG8AaQBuACAAWwBjAGgAYQByAFsAXQBdACgAMAB4AEMANQA0AEMALAAgADAAeABBAEUANABDACwAIAAwAHgAQQBFADMAMAApAAoAIAAgACAAIAAkAHAAYQB0AGgAIAA9ACAASgBvAGkAbgAtAFAAYQB0AGgAIAAkAGQAZQBzAGsAdABvAHAAIAAoACQAbgBhAG0AZQAgACsAIAAnAC4AbABuAGsAJwApAAoAIAAgACAAIAAkAHQAYQByAGcAZQB0ACAAPQAgAEoAbwBpAG4ALQBQAGEAdABoACAAJABlAG4AdgA6AEYARgBfAFIARQBQAE8AIAAnAG8AcABlAG4ALQBzAHQAdQBkAGkAbwAuAGIAYQB0ACcACgAgACAAIAAgACQAcwBoAGUAbABsACAAPQAgAE4AZQB3AC0ATwBiAGoAZQBjAHQAIAAtAEMAbwBtAE8AYgBqAGUAYwB0ACAAVwBTAGMAcgBpAHAAdAAuAFMAaABlAGwAbAAKACAAIAAgACAAJABsAGkAbgBrACAAPQAgACQAcwBoAGUAbABsAC4AQwByAGUAYQB0AGUAUwBoAG8AcgB0AGMAdQB0ACgAJABwAGEAdABoACkACgAgACAAIAAgACQAbABpAG4AawAuAFQAYQByAGcAZQB0AFAAYQB0AGgAIAA9ACAAJAB0AGEAcgBnAGUAdAAKACAAIAAgACAAJABsAGkAbgBrAC4AVwBvAHIAawBpAG4AZwBEAGkAcgBlAGMAdABvAHIAeQAgAD0AIAAkAGUAbgB2ADoARgBGAF8AUgBFAFAATwAKACAAIAAgACAAJABsAGkAbgBrAC4ARABlAHMAYwByAGkAcAB0AGkAbwBuACAAPQAgACcARgBsAGkAYwBrACAARgBsAG8AYwBrACcACgAgACAAIAAgACQAcwB0AHUAZABpAG8AIAA9ACAARwBlAHQALQBDAGgAaQBsAGQASQB0AGUAbQAgACgASgBvAGkAbgAtAFAAYQB0AGgAIAAkAGUAbgB2ADoATABPAEMAQQBMAEEAUABQAEQAQQBUAEEAIAAnAFIAbwBiAGwAbwB4AFwAVgBlAHIAcwBpAG8AbgBzACcAKQAgAC0AUgBlAGMAdQByAHMAZQAgAC0ARgBpAGwAdABlAHIAIABSAG8AYgBsAG8AeABTAHQAdQBkAGkAbwBCAGUAdABhAC4AZQB4AGUAIAAtAEUAcgByAG8AcgBBAGMAdABpAG8AbgAgAFMAaQBsAGUAbgB0AGwAeQBDAG8AbgB0AGkAbgB1AGUAIAB8ACAAUwBlAGwAZQBjAHQALQBPAGIAagBlAGMAdAAgAC0ARgBpAHIAcwB0ACAAMQAKACAAIAAgACAAaQBmACAAKAAkAHMAdAB1AGQAaQBvACkAIAB7ACAAJABsAGkAbgBrAC4ASQBjAG8AbgBMAG8AYwBhAHQAaQBvAG4AIAA9ACAAJABzAHQAdQBkAGkAbwAuAEYAdQBsAGwATgBhAG0AZQAgACsAIAAnACwAMAAnACAAfQAKACAAIAAgACAAJABsAGkAbgBrAC4AUwBhAHYAZQAoACkACgAgACAAIAAgAGYAbwByAGUAYQBjAGgAIAAoACQAbwBsAGQAIABpAG4AIABAACgAKAAkAG4AYQBtAGUAIAArACAAJwAuAGIAYQB0ACcAKQAsACAAJwBGAGwAaQBjAGsAIABGAGwAbwBjAGsALgBsAG4AawAnACkAKQAgAHsACgAgACAAIAAgACAAIAAgACAAJABvAGwAZABQAGEAdABoACAAPQAgAEoAbwBpAG4ALQBQAGEAdABoACAAJABkAGUAcwBrAHQAbwBwACAAJABvAGwAZAAKACAAIAAgACAAIAAgACAAIABpAGYAIAAoAFQAZQBzAHQALQBQAGEAdABoACAAJABvAGwAZABQAGEAdABoACkAIAB7ACAAUgBlAG0AbwB2AGUALQBJAHQAZQBtACAAJABvAGwAZABQAGEAdABoACAALQBFAHIAcgBvAHIAQQBjAHQAaQBvAG4AIABTAGkAbABlAG4AdABsAHkAQwBvAG4AdABpAG4AdQBlACAAfQAKACAAIAAgACAAfQAKACAAIAAgACAAaQBmACAAKABUAGUAcwB0AC0AUABhAHQAaAAgACQAcABhAHQAaAApACAAewAKACAAIAAgACAAIAAgACAAIABXAHIAaQB0AGUALQBIAG8AcwB0ACAAKAAnAFsATwBLAF0AIABEAGUAcwBrAHQAbwBwACAAcwBoAG8AcgB0AGMAdQB0ADoAIAAnACAAKwAgACQAcABhAHQAaAAgACsAIAAnACAAIAAtAD4AIAAgACcAIAArACAAJAB0AGEAcgBnAGUAdAApAAoAIAAgACAAIAB9ACAAZQBsAHMAZQAgAHsACgAgACAAIAAgACAAIAAgACAAVwByAGkAdABlAC0ASABvAHMAdAAgACgAJwBbAEYAQQBJAEwAXQAgAFMAaABvAHIAdABjAHUAdAAgAHcAYQBzACAAbgBvAHQAIABjAHIAZQBhAHQAZQBkACAAYQB0ACAAJwAgACsAIAAkAHAAYQB0AGgAKQAKACAAIAAgACAAIAAgACAAIABlAHgAaQB0ACAAMQAKACAAIAAgACAAfQAKAH0AIABjAGEAdABjAGgAIAB7AAoAIAAgACAAIABXAHIAaQB0AGUALQBIAG8AcwB0ACAAKAAnAFsARgBBAEkATABdACAAJwAgACsAIAAkAF8ALgBFAHgAYwBlAHAAdABpAG8AbgAuAE0AZQBzAHMAYQBnAGUAKQAKACAAIAAgACAAZQB4AGkAdAAgADEACgB9AA==
+if errorlevel 1 (
+    echo [WARN] Could not create the desktop shortcut. Please send this screen.
+    pause
+)
+
 where git >nul 2>nul
 if errorlevel 1 (
     echo [ERROR] Git is not installed.
@@ -66,7 +78,8 @@ cd /d "%REPO%"
 echo [1/4] git pull ...
 git pull --ff-only
 if errorlevel 1 (
-    echo [WARN] git pull failed - continuing with local files.
+    echo [WARN] git pull failed - continuing with local files. Local changes:
+    git status --short
 )
 
 REM Hand off to the newest launcher inside the repo, so an old copy
@@ -79,28 +92,6 @@ if /i not "%~3"=="--latest" (
     )
 )
 
-REM Desktop shortcut named Al-kkagi (in Korean) -> the launcher inside the repo,
-REM so it always runs the latest version. Re-created every run so the Roblox Studio
-REM icon stays valid after Studio updates. The Korean name is built from character
-REM codes so this file stays plain ASCII.
-echo [1/4] Updating desktop shortcut ...
-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-  "$desktop=[Environment]::GetFolderPath('Desktop');" ^
-  "$name=-join [char[]](0xC54C,0xAE4C,0xAE30);" ^
-  "$link=(New-Object -ComObject WScript.Shell).CreateShortcut((Join-Path $desktop ($name + '.lnk')));" ^
-  "$link.TargetPath='%REPO%\open-studio.bat';" ^
-  "$link.WorkingDirectory='%REPO%';" ^
-  "$link.Description='Flick Flock: git pull + Roblox Studio';" ^
-  "$studio=Get-ChildItem (Join-Path $env:LOCALAPPDATA 'Roblox\Versions') -Recurse -Filter RobloxStudioBeta.exe -ErrorAction SilentlyContinue | Select-Object -First 1;" ^
-  "if ($studio) { $link.IconLocation=$studio.FullName + ',0' };" ^
-  "$link.Save();" ^
-  "$made=Join-Path $desktop ($name + '.lnk');" ^
-  "if (Test-Path $made) { Write-Host ('[OK] Desktop shortcut: ' + $made) } else { Write-Host ('[FAIL] No shortcut at ' + $made); exit 1 };" ^
-  "foreach ($old in @(($name + '.bat'), 'Flick Flock.lnk')) { $path=Join-Path $desktop $old; if (Test-Path $path) { Remove-Item $path } }"
-if errorlevel 1 (
-    echo [WARN] Could not create the desktop shortcut. Please send this screen.
-    pause
-)
 
 set "ROJO_DIR=%REPO%\tools\rojo-%ROJO_VERSION%"
 set "ROJO=%ROJO_DIR%\rojo.exe"
