@@ -251,7 +251,11 @@ local function blizzard(context)
 		else
 			-- 상대 진영 아무 데나 (판 안으로)
 			local spot = direction * context.random:NextNumber(4, half) + across * context.random:NextNumber(-half / 2, half / 2)
-			target = Vector3.new(math.clamp(spot.X, -half, half), Config.BoardHeight, math.clamp(spot.Z, -half, half))
+			-- 판 밖이면 가운데 쪽으로 당긴다
+			while not context.BoardShape.inside(context.Board.edges, spot.X, spot.Z, 2) and spot.Magnitude > 1 do
+				spot *= 0.9
+			end
+			target = Vector3.new(spot.X, Config.BoardHeight, spot.Z)
 		end
 		local start = Vector3.new(target.X, cloud.Position.Y - 4, target.Z)
 		launch(context, "Ice", start, target, 0.8, function(part)

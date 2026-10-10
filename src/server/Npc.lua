@@ -2,7 +2,7 @@
 -- 계산은 숫자(x, z)만 써서 Studio 없이도 테스트할 수 있다.
 --
 -- 알 정보 : { x = number, z = number, mass = number, radius = number }
--- 설정 : { boardHalf, gravity, friction, elasticity, flickPower, powerBoost, aimErrorDegrees }
+-- 설정 : { distanceToEdge(x, z, dx, dz), gravity, friction, elasticity, flickPower, powerBoost, aimErrorDegrees }
 
 local Npc = {}
 
@@ -23,20 +23,10 @@ export type PieceInfo = {
 }
 export type Shot = { shooter: number, target: number?, dirX: number, dirZ: number, power: number }
 
--- 점 (x, z) 에서 방향 (dx, dz) 로 갔을 때 판 가장자리까지 거리
-local function distanceToEdge(x: number, z: number, dx: number, dz: number, half: number): number
-	local best = math.huge
-	if dx > 1e-6 then
-		best = math.min(best, (half - x) / dx)
-	elseif dx < -1e-6 then
-		best = math.min(best, (-half - x) / dx)
-	end
-	if dz > 1e-6 then
-		best = math.min(best, (half - z) / dz)
-	elseif dz < -1e-6 then
-		best = math.min(best, (-half - z) / dz)
-	end
-	return math.max(best, 0)
+-- 점 (x, z) 에서 방향 (dx, dz) 로 갔을 때 판 가장자리까지 거리.
+-- 판 모양(사각형·육각형)은 부르는 쪽이 settings.distanceToEdge 로 알려 준다 (BoardShape.distanceToEdge).
+local function distanceToEdge(x: number, z: number, dx: number, dz: number, settings): number
+	return settings.distanceToEdge(x, z, dx, dz)
 end
 
 -- 선분 a→b 와 점 p 사이 거리
@@ -79,7 +69,7 @@ local function powerNeeded(mine: PieceInfo, target: PieceInfo, settings): (numbe
 	local mineSlow = mine.slow or defaultSlow
 	local targetSlow = target.slow or defaultSlow
 	-- 상대 알이 가장자리를 넘을 때까지 가야 하는 거리 (가운데가 넘으면 탈락, 여유 1)
-	local targetTravel = distanceToEdge(target.x, target.z, dx, dz, settings.boardHalf) + 1
+	local targetTravel = distanceToEdge(target.x, target.z, dx, dz, settings) + 1
 	local targetSpeed = math.sqrt(2 * targetSlow * targetTravel)
 	-- 부딪힐 때 상대에게 전달되는 비율 (정면 충돌)
 	local transfer = (1 + pairBounce(mine, target, settings)) * mine.mass / (mine.mass + target.mass)
@@ -109,9 +99,9 @@ local function shooterFallsOff(mine: PieceInfo, target: PieceInfo, power: number
 	local hitX = target.x - dx * (mine.radius + target.radius)
 	local hitZ = target.z - dz * (mine.radius + target.radius)
 	if leftSpeed >= 0 then
-		return travel > distanceToEdge(hitX, hitZ, dx, dz, settings.boardHalf)
+		return travel > distanceToEdge(hitX, hitZ, dx, dz, settings)
 	end
-	return travel > distanceToEdge(hitX, hitZ, -dx, -dz, settings.boardHalf)
+	return travel > distanceToEdge(hitX, hitZ, -dx, -dz, settings)
 end
 
 -- 왕알 들이받기 : 떨어지지 않는 가장 센 세기와 그때 데미지

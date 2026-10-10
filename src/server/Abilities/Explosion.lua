@@ -6,28 +6,29 @@ local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Co
 local Ability = {}
 
 local function buildWalls(): Folder
+	local Board = require(script.Parent.Parent:WaitForChild("Board"))
 	local walls = Instance.new("Folder")
 	walls.Name = "ExplosionWalls"
-	local size = Config.BoardSize
 	local height = Config.ExplosionWallHeight
-	local y = Config.BoardHeight + height / 2
 	local thickness = 2
-	local spots = {
-		{ Vector3.new(size + thickness * 2, height, thickness), Vector3.new(0, y, size / 2 + thickness / 2) },
-		{ Vector3.new(size + thickness * 2, height, thickness), Vector3.new(0, y, -size / 2 - thickness / 2) },
-		{ Vector3.new(thickness, height, size), Vector3.new(size / 2 + thickness / 2, y, 0) },
-		{ Vector3.new(thickness, height, size), Vector3.new(-size / 2 - thickness / 2, y, 0) },
-	}
-	for _, spot in spots do
-		local wall = Instance.new("Part")
-		wall.Name = "Wall"
-		wall.Anchored = true
-		wall.Transparency = 1
-		wall.CanQuery = false
-		wall.Size = spot[1]
-		wall.Position = spot[2]
-		wall.CollisionGroup = "Pieces"
-		wall.Parent = walls
+	local y = Config.BoardHeight + height / 2
+	-- 판의 변마다 (마주 보는 변 둘 다) 바깥에 벽
+	for _, edge in Board.edges do
+		local normal = Vector3.new(edge.nx, 0, edge.nz)
+		for _, sign in { 1, -1 } do
+			local outward = normal * sign
+			local center = Vector3.new(0, y, 0) + outward * (edge.half + thickness / 2)
+			local wall = Instance.new("Part")
+			wall.Name = "Wall"
+			wall.Anchored = true
+			wall.Transparency = 1
+			wall.CanQuery = false
+			-- 모서리 틈이 없게 조금 길게
+			wall.Size = Vector3.new(edge.length + thickness * 3, height, thickness)
+			wall.CFrame = CFrame.lookAt(center, center + outward)
+			wall.CollisionGroup = "Pieces"
+			wall.Parent = walls
+		end
 	end
 	walls.Parent = workspace
 	return walls

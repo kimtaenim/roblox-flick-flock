@@ -8,8 +8,10 @@
 local Config = require("./_build/Config")
 local Npc = require("../src/server/Npc")
 local TeamLayout = require("../src/shared/TeamLayout")
+local BoardShape = require("../src/shared/BoardShape")
 
-local BOARD_HALF = Config.BoardSize / 2
+-- 지금 판 모양 (playGame 이 팀 수에 맞게 바꾼다)
+local boardEdges = BoardShape.edges("Square", Config.BoardSize)
 local GRAVITY = 196.2
 local DT = 1 / 240
 local MAX_TURNS = 120
@@ -120,7 +122,7 @@ local function step(pieces)
 	end
 	-- 판 밖 탈락 (Elimination.lua 와 같은 규칙)
 	for _, p in pieces do
-		if p.alive and (math.abs(p.x) > BOARD_HALF or math.abs(p.z) > BOARD_HALF) then
+		if p.alive and not BoardShape.inside(boardEdges, p.x, p.z) then
 			p.alive = false
 		end
 	end
@@ -178,6 +180,7 @@ end
 local function playGame(seed: number, presets: { number })
 	local rng = makeRandom(seed)
 	local teamCount = #presets
+	boardEdges = BoardShape.edges(BoardShape.pick(Config.BoardShape, teamCount), Config.BoardSize)
 	local pieces = {}
 	for team, preset in presets do
 		layoutTeam(team, teamCount, Config.PresetTeams[preset].Pieces, pieces)
@@ -185,7 +188,7 @@ local function playGame(seed: number, presets: { number })
 
 	-- 시작 배치가 겹치거나 판 밖이면 안 된다
 	for i, a in pieces do
-		assert(math.abs(a.x) + a.radius <= BOARD_HALF and math.abs(a.z) + a.radius <= BOARD_HALF, "시작 알이 판 밖")
+		assert(BoardShape.inside(boardEdges, a.x, a.z, a.radius), "시작 알이 판 밖: " .. a.kind)
 		for j = i + 1, #pieces do
 			local b = pieces[j]
 			local dist = math.sqrt((a.x - b.x) ^ 2 + (a.z - b.z) ^ 2)
@@ -210,7 +213,9 @@ local function playGame(seed: number, presets: { number })
 			end
 		end
 		local shot = Npc.chooseShot(shooterInfos, targets, {
-			boardHalf = BOARD_HALF,
+			distanceToEdge = function(x, z, dx, dz)
+				return BoardShape.distanceToEdge(boardEdges, x, z, dx, dz)
+			end,
 			gravity = GRAVITY,
 			friction = Config.BoardFriction,
 			elasticity = Config.Pieces.Flat.bounce,
@@ -317,7 +322,7 @@ for teamCount = 3, 4 do
 	for team = 1, teamCount do
 		table.insert(line, string.format("%s %d승", Config.Teams[team].Name, wins[team] or 0))
 	end
-	print(string.format("%d팀 : %d판, 평균 %.1f턴, 무승부 %d | %s", teamCount, games, turnsSum / games, draws, table.concat(line, " · ")))
+	print(string.format("%d팀 (%s) : %d판, 평균 %.1f턴, 무승부 %d | %s", teamCount, BoardShape.pick(Config.BoardShape, teamCount), games, turnsSum / games, draws, table.concat(line, " · ")))
 end
 
 print(if unfinished == 0 then "모든 판이 승패로 끝남" else ("끝나지 않은 판: " .. unfinished))

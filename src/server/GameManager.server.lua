@@ -17,6 +17,7 @@ local Effects = require(script.Parent:WaitForChild("Effects"))
 local Npc = require(script.Parent:WaitForChild("Npc"))
 local Speech = require(script.Parent:WaitForChild("Speech"))
 local TeamLayout = require(Shared:WaitForChild("TeamLayout"))
+local BoardShape = require(Shared:WaitForChild("BoardShape"))
 
 local state = Remotes.State
 local random = Random.new()
@@ -56,7 +57,7 @@ local piecesFolder = Instance.new("Folder")
 piecesFolder.Name = "Pieces"
 piecesFolder.Parent = workspace
 
-Board.build()
+Board.build(Config.DefaultTeamCount)
 Damage.start(piecesFolder)
 
 ---------------------------------------------------------------- 팀 주인
@@ -303,6 +304,8 @@ local function makeContext(team: number)
 		Effects = Effects,
 		Damage = Damage,
 		Speech = Speech,
+		Board = Board,
+		BoardShape = BoardShape,
 		GHOST_GROUP = GHOST_GROUP,
 		teamCount = teamCount,
 		-- 아직 안 진 상대 팀 번호들
@@ -512,7 +515,9 @@ local function playNpcTurn(team: number)
 	end
 
 	local shot = Npc.chooseShot(shooterInfos, targets, {
-		boardHalf = Config.BoardSize / 2,
+		distanceToEdge = function(x: number, z: number, dx: number, dz: number): number
+			return BoardShape.distanceToEdge(Board.edges, x, z, dx, dz)
+		end,
 		gravity = workspace.Gravity,
 		friction = Config.BoardFriction,
 		elasticity = Config.Pieces.Flat.bounce,
@@ -803,6 +808,9 @@ local function playRound()
 		return
 	end
 	assignTeams()
+	-- 팀 수에 맞는 판 (3팀은 육각형)
+	piecesFolder:ClearAllChildren()
+	Board.build(teamCount)
 	runTeamSelect()
 	if restartRequested then
 		return

@@ -2,7 +2,8 @@
 local Config = {}
 
 -- 판
-Config.BoardSize = 64 -- 판 한 변 길이 (스터드)
+Config.BoardSize = 64 -- 판 크기 : 마주 보는 두 변 사이 거리 (스터드)
+Config.BoardShape = "Auto" -- "Auto": 3팀은 육각형, 2·4팀은 사각형 / "Square" / "Hexagon"
 Config.BoardThickness = 2
 Config.BoardHeight = 6 -- 판 윗면 높이
 Config.BoardColor = Color3.fromRGB(196, 154, 108)

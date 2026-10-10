@@ -3,6 +3,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local TeamLayout = require(Shared:WaitForChild("TeamLayout"))
+local BoardShape = require(Shared:WaitForChild("BoardShape"))
+
+local Board = require(script.Parent:WaitForChild("Board"))
 
 local PieceFactory = require(script.Parent:WaitForChild("PieceFactory"))
 
@@ -18,8 +21,7 @@ end
 
 -- (x, z) 에 반지름 radius 알을 놓으면 다른 알과 안 겹치는지
 function Placement.isFree(x: number, z: number, radius: number, folder: Instance, ignore: BasePart?): boolean
-	local half = Config.BoardSize / 2 - EDGE_GAP
-	if math.abs(x) + radius > half or math.abs(z) + radius > half then
+	if not BoardShape.inside(Board.edges, x, z, radius + EDGE_GAP) then
 		return false
 	end
 	for _, piece in folder:GetChildren() do
@@ -36,7 +38,7 @@ end
 
 -- 원하는 자리에서 가장 가까운 빈 자리
 function Placement.findFreeSpot(wantX: number, wantZ: number, radius: number, folder: Instance, ignore: BasePart?): Vector3?
-	local half = Config.BoardSize / 2
+	local half = math.ceil(BoardShape.reach(Board.shape, Config.BoardSize))
 	local best: Vector3? = nil
 	local bestDistance = math.huge
 	for x = -half, half do
