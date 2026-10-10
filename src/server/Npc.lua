@@ -19,6 +19,7 @@ export type PieceInfo = {
 	isKing: boolean?,
 	hp: number?,
 	massFactor: number?,
+	flickScale: number?, -- 튕기는 힘 배율 (없으면 1)
 }
 export type Shot = { shooter: number, target: number?, dirX: number, dirZ: number, power: number }
 
@@ -87,7 +88,7 @@ local function powerNeeded(mine: PieceInfo, target: PieceInfo, settings): (numbe
 	local gap = math.max(distance - mine.radius - target.radius, 0)
 	local startSpeed = math.sqrt(hitSpeed * hitSpeed + 2 * mineSlow * gap) * settings.powerBoost
 
-	local power = startSpeed * mine.mass / settings.flickPower
+	local power = startSpeed * mine.mass / (settings.flickPower * (mine.flickScale or 1))
 	return power, dx, dz
 end
 
@@ -97,7 +98,7 @@ local function shooterFallsOff(mine: PieceInfo, target: PieceInfo, power: number
 	local mineSlow = mine.slow or defaultSlow
 	local distance = math.sqrt((target.x - mine.x) ^ 2 + (target.z - mine.z) ^ 2)
 	local gap = math.max(distance - mine.radius - target.radius, 0)
-	local startSpeed = math.min(power, 1) * settings.flickPower / mine.mass
+	local startSpeed = math.min(power, 1) * settings.flickPower * (mine.flickScale or 1) / mine.mass
 	local hitSpeedSq = startSpeed * startSpeed - 2 * mineSlow * gap
 	if hitSpeedSq <= 0 then
 		return false
@@ -126,7 +127,7 @@ local function kingAttack(mine: PieceInfo, king: PieceInfo, settings): (number, 
 	local power = 1
 	while power >= 0.4 do
 		if not shooterFallsOff(mine, king, power, dx, dz, settings) then
-			local startSpeed = power * settings.flickPower / mine.mass
+			local startSpeed = power * settings.flickPower * (mine.flickScale or 1) / mine.mass
 			local hitSpeedSq = startSpeed * startSpeed - 2 * slow * gap
 			if hitSpeedSq <= 0 then
 				return 0, power, dx, dz

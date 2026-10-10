@@ -46,6 +46,7 @@ local function makePiece(kind: string, team: number, x: number, z: number)
 		radius = Config.PieceDiameter * info.size / 2,
 		slow = (info.friction + Config.BoardFriction) / 2 * GRAVITY, -- GameManager.slowOf 와 같은 식
 		bounce = info.bounce,
+		flickScale = info.flickScale or 1,
 		hp = info.hp,
 	}
 end
@@ -175,6 +176,7 @@ local function infoOf(p)
 		isKing = p.kind == "King",
 		hp = p.hp,
 		massFactor = p.massFactor,
+		flickScale = p.flickScale,
 	}
 end
 
@@ -223,7 +225,7 @@ local function playGame(seed: number, presetRed: number, presetBlue: number)
 		if shot then
 			assert(shot.power >= 0 and shot.power <= 1, "세기가 0~1 밖")
 			local shooter = shooters[shot.shooter]
-			local speed = math.max(shot.power, Config.MinFlickPower) * Config.FlickPower / shooter.mass
+			local speed = math.max(shot.power, Config.MinFlickPower) * Config.FlickPower * shooter.flickScale / shooter.mass
 			shooter.vx, shooter.vz = shot.dirX * speed, shot.dirZ * speed
 		end
 		local t = 0

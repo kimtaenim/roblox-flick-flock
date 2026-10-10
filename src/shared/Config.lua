@@ -18,11 +18,12 @@ Config.MassUnit = 10 -- 질량 1 = 실제 무게 몇
 -- 알 종류 : 다섯 값 (shape, size, mass, hp, ability) + 미끄러움(friction)·튕김(bounce)
 -- shape : "Flat" 납작 원기둥 / "Round" 볼록한 타원체 (바둑알처럼)
 -- friction 이 작을수록 멀리 가고, bounce 가 클수록 세게 튄다 (0~1)
+-- flickScale : 튕기는 힘 배율 (없으면 1). 쪼꼬미는 가벼워서 그냥 두면 너무 빨라 0.6 으로 줄임
 Config.Pieces = {
 	King = { shape = "Flat", size = 2, mass = 4, hp = 150, ability = nil, friction = 0.3, bounce = 0.4 }, -- 왕알
 	Flat = { shape = "Flat", size = 1, mass = 1, hp = 0, ability = nil, friction = 0.3, bounce = 0.4 }, -- 납작 알
 	Round = { shape = "Round", size = 1, mass = 1, hp = 0, ability = nil, friction = 0.1, bounce = 0.7 }, -- 둥근 알
-	Half = { shape = "Round", size = 0.5, mass = 0.5, hp = 0, ability = nil, friction = 0.12, bounce = 0.7 }, -- 0.5 알
+	Half = { shape = "Round", size = 0.5, mass = 0.5, hp = 0, ability = nil, friction = 0.12, bounce = 0.7, flickScale = 0.6 }, -- 0.5 알 (쪼꼬미)
 }
 Config.CanFlickKing = true -- 왕알도 튕길 수 있음 (무거워서 멀리 안 감)
 

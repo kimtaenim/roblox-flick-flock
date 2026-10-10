@@ -285,7 +285,9 @@ end
 local function applyFlick(piece: BasePart, direction: Vector3, power: number)
 	state:SetAttribute("Phase", "Moving")
 	piece:SetNetworkOwner(nil)
-	piece:ApplyImpulse(direction.Unit * power * Config.FlickPower)
+	local info = Config.Pieces[piece:GetAttribute("Kind") :: string]
+	local flickScale = if info and info.flickScale then info.flickScale else 1
+	piece:ApplyImpulse(direction.Unit * power * Config.FlickPower * flickScale)
 	Effects.sound("Flick", piece)
 	-- 상대 왕알을 노리고 치면 허세, 아니면 보통 대사
 	local enemyKing = kingOf(3 - (piece:GetAttribute("Team") :: number))
@@ -386,6 +388,7 @@ local function toInfo(piece: BasePart): Npc.PieceInfo
 		isKing = piece:GetAttribute("Kind") == "King",
 		hp = piece:GetAttribute("Hp") :: number?,
 		massFactor = PieceFactory.massFactor(piece),
+		flickScale = if info then info.flickScale else nil,
 	}
 end
 
