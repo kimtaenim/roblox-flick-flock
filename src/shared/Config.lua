@@ -110,8 +110,15 @@ Config.NpcPowerBoost = 1.25 -- 계산한 세기보다 이만큼 세게 (클수�
 Config.NpcAbilityChance = 0.35 -- 능력 알이 있을 때 능력을 쓸 확률
 
 -- 카메라
-Config.CameraHeight = 54
-Config.CameraBack = 44
+Config.CameraDistance = 38 -- 처음 카메라 거리 (작을수록 크게 보임)
+Config.CameraMinDistance = 14
+Config.CameraMaxDistance = 90
+Config.CameraPitch = 55 -- 내려다보는 각도 (도). 90 = 바로 위
+Config.CameraMinPitch = 20
+Config.CameraMaxPitch = 85
+Config.CameraRotateSpeed = 0.5 -- 끌어서 돌리는 속도
+Config.CameraZoomStep = 0.88 -- 휠 한 칸에 거리 몇 배
+Config.CameraMoveSpeed = 30 -- WASD 로 움직이는 속도 (스터드/초)
 Config.ShakeStrength = 1.2 -- 폭발 때 화면 흔들림
 
 -- 소리 : 로블록스에 기본으로 들어 있는 소리를 음 높이(Pitch)를 바꿔 여러 가지로 쓴다.

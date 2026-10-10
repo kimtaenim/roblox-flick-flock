@@ -34,6 +34,20 @@ local turnLabel = makeLabel("Turn", 10, 32)
 local helpLabel = makeLabel("Help", 54, 20)
 local scoreLabel = makeLabel("Score", 84, 24)
 
+local cameraHint = Instance.new("TextLabel")
+cameraHint.Name = "CameraHint"
+cameraHint.AnchorPoint = Vector2.new(0, 1)
+cameraHint.Position = UDim2.new(0, 12, 1, -100)
+cameraHint.Size = UDim2.new(0.6, 0, 0, 22)
+cameraHint.BackgroundTransparency = 1
+cameraHint.Font = Enum.Font.Gotham
+cameraHint.TextSize = 16
+cameraHint.TextXAlignment = Enum.TextXAlignment.Left
+cameraHint.TextColor3 = Color3.new(1, 1, 1)
+cameraHint.TextStrokeTransparency = 0.5
+cameraHint.Text = "🎥 빈 곳 끌기: 돌리기 · 휠: 확대 · WASD: 이동 · R: 처음 자리"
+cameraHint.Parent = gui
+
 local banner = Instance.new("TextLabel")
 banner.Name = "Banner"
 banner.AnchorPoint = Vector2.new(0.5, 0.5)

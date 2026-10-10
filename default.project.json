@@ -65,6 +65,11 @@
       "$properties": {
         "ClockTime": 14
       }
+    },
+    "Players": {
+      "$properties": {
+        "CharacterAutoLoads": false
+      }
     }
   }
 }

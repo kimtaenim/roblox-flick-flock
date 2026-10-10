@@ -46,7 +46,8 @@ local function canFlick(piece: Instance): boolean
 	return Config.CanFlickKing or piece:GetAttribute("Kind") ~= "King"
 end
 
--- 카메라 : 내 진영 뒤에서 판을 내려다본다. 폭발하면 흔들린다.
+-- 카메라 : 판 가운데를 중심으로 빙 돌아가는 카메라.
+-- 빈 곳 끌기 / 오른쪽 버튼 끌기 / Q·E = 돌리기, 휠·두 손가락 = 확대, WASD·화살표 = 이동, R = 처음 자리
 local shakeAmount = 0
 Remotes.Effect.OnClientEvent:Connect(function(kind, value)
 	if kind == "Shake" and typeof(value) == "number" then
@@ -54,13 +55,86 @@ Remotes.Effect.OnClientEvent:Connect(function(kind, value)
 	end
 end)
 
+local cameraYaw = 0 -- 옆으로 돈 각도 (라디안)
+local cameraPitch = math.rad(Config.CameraPitch)
+local cameraDistance = Config.CameraDistance
+local cameraFocus = Vector3.new(0, Config.BoardHeight, 0)
 local smoothCFrame: CFrame? = nil
+local lastSideTeam: number? = nil
+
+-- 내 진영 뒤에서 보는 처음 자리
+local function resetCamera()
+	local team = myTeam() or 1
+	cameraYaw = if team == 1 then 0 else math.pi
+	cameraPitch = math.rad(Config.CameraPitch)
+	cameraDistance = Config.CameraDistance
+	local side = if team == 1 then 1 else -1
+	cameraFocus = Vector3.new(0, Config.BoardHeight, side * 4)
+end
+
+local function clampCamera()
+	cameraPitch = math.clamp(cameraPitch, math.rad(Config.CameraMinPitch), math.rad(Config.CameraMaxPitch))
+	cameraDistance = math.clamp(cameraDistance, Config.CameraMinDistance, Config.CameraMaxDistance)
+	local half = Config.BoardSize / 2
+	cameraFocus = Vector3.new(math.clamp(cameraFocus.X, -half, half), Config.BoardHeight, math.clamp(cameraFocus.Z, -half, half))
+end
+
+local function rotateCamera(deltaX: number, deltaY: number)
+	cameraYaw -= math.rad(deltaX * Config.CameraRotateSpeed)
+	cameraPitch += math.rad(deltaY * Config.CameraRotateSpeed)
+	clampCamera()
+end
+
+local function zoomCamera(factor: number)
+	cameraDistance *= factor
+	clampCamera()
+end
+
+local MOVE_KEYS = {
+	[Enum.KeyCode.W] = Vector2.new(0, -1),
+	[Enum.KeyCode.Up] = Vector2.new(0, -1),
+	[Enum.KeyCode.S] = Vector2.new(0, 1),
+	[Enum.KeyCode.Down] = Vector2.new(0, 1),
+	[Enum.KeyCode.A] = Vector2.new(-1, 0),
+	[Enum.KeyCode.Left] = Vector2.new(-1, 0),
+	[Enum.KeyCode.D] = Vector2.new(1, 0),
+	[Enum.KeyCode.Right] = Vector2.new(1, 0),
+}
+
 RunService:BindToRenderStep("FlickCamera", Enum.RenderPriority.Camera.Value + 1, function(dt)
-	local side = if (myTeam() or 1) == 1 then 1 else -1
-	local eye = Vector3.new(0, Config.BoardHeight + Config.CameraHeight, side * Config.CameraBack)
-	local focus = Vector3.new(0, Config.BoardHeight, side * 2)
-	local target = CFrame.lookAt(eye, focus)
-	smoothCFrame = if smoothCFrame then smoothCFrame:Lerp(target, math.clamp(dt * 5, 0, 1)) else target
+	-- 내 팀이 바뀌면 (혼자 두 팀일 때 차례가 바뀌면) 그 팀 뒤로
+	local team = myTeam() or 1
+	if team ~= lastSideTeam then
+		lastSideTeam = team
+		resetCamera()
+	end
+
+	-- 키보드 : 이동·돌리기
+	if not UserInputService:GetFocusedTextBox() then
+		local move = Vector2.zero
+		for key, direction in MOVE_KEYS do
+			if UserInputService:IsKeyDown(key) then
+				move += direction
+			end
+		end
+		if move.Magnitude > 0 then
+			-- 화면 기준 앞·옆
+			local forward = Vector3.new(-math.sin(cameraYaw), 0, -math.cos(cameraYaw))
+			local right = Vector3.new(math.cos(cameraYaw), 0, -math.sin(cameraYaw))
+			cameraFocus += (right * move.X - forward * move.Y) * Config.CameraMoveSpeed * dt
+			clampCamera()
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.Q) then
+			rotateCamera(-120 * dt, 0)
+		elseif UserInputService:IsKeyDown(Enum.KeyCode.E) then
+			rotateCamera(120 * dt, 0)
+		end
+	end
+
+	local flat = cameraDistance * math.cos(cameraPitch)
+	local eye = cameraFocus + Vector3.new(math.sin(cameraYaw) * flat, cameraDistance * math.sin(cameraPitch), math.cos(cameraYaw) * flat)
+	local target = CFrame.lookAt(eye, cameraFocus)
+	smoothCFrame = if smoothCFrame then smoothCFrame:Lerp(target, math.clamp(dt * 10, 0, 1)) else target
 
 	local shake = Vector3.zero
 	if shakeAmount > 0.01 then
@@ -70,6 +144,38 @@ RunService:BindToRenderStep("FlickCamera", Enum.RenderPriority.Camera.Value + 1,
 	camera.CameraType = Enum.CameraType.Scriptable
 	camera.CFrame = (smoothCFrame :: CFrame) + shake
 end)
+
+-- 휠 확대
+UserInputService.InputChanged:Connect(function(input, gameProcessed)
+	if input.UserInputType == Enum.UserInputType.MouseWheel and not gameProcessed then
+		zoomCamera(if input.Position.Z > 0 then Config.CameraZoomStep else 1 / Config.CameraZoomStep)
+	end
+end)
+
+-- 두 손가락 벌리기·오므리기 확대
+local lastPinchScale = 1
+UserInputService.TouchPinch:Connect(function(_positions, scale, _velocity, inputState, gameProcessed)
+	if gameProcessed then
+		return
+	end
+	if inputState == Enum.UserInputState.Begin then
+		lastPinchScale = 1
+	end
+	if scale > 0 then
+		zoomCamera(lastPinchScale / scale)
+		lastPinchScale = scale
+	end
+end)
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if not gameProcessed and input.KeyCode == Enum.KeyCode.R then
+		resetCamera()
+	end
+end)
+
+-- 화면 돌리기 끌기 (빈 곳을 왼쪽 버튼·손가락으로, 또는 아무 데나 오른쪽 버튼으로)
+local cameraDragInput: InputObject? = nil
+local lastDragPosition = Vector3.zero
 
 -- 조준선 (내 화면에만 보임)
 local aimArrow = Instance.new("Part")
@@ -148,6 +254,43 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if result and canFlick(result.Instance) then
 		dragging = { piece = result.Instance :: BasePart, input = input }
 		shotPower = 0
+	end
+end)
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed or cameraDragInput then
+		return
+	end
+	local isRight = input.UserInputType == Enum.UserInputType.MouseButton2
+	-- 왼쪽·터치는 알을 안 잡았을 때만 (위 InputBegan 이 먼저 dragging 을 정한다)
+	if isRight or (isPress(input) and not dragging) then
+		task.defer(function()
+			if isRight or not dragging then
+				cameraDragInput = input
+				lastDragPosition = input.Position
+			end
+		end)
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	local dragInput = cameraDragInput
+	if not dragInput then
+		return
+	end
+	local isMouse = dragInput.UserInputType == Enum.UserInputType.MouseButton1
+		or dragInput.UserInputType == Enum.UserInputType.MouseButton2
+	if (isMouse and input.UserInputType == Enum.UserInputType.MouseMovement) or input == dragInput then
+		local delta = input.Position - lastDragPosition
+		lastDragPosition = input.Position
+		rotateCamera(delta.X, delta.Y)
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	local dragInput = cameraDragInput
+	if dragInput and (input == dragInput or input.UserInputType == dragInput.UserInputType) then
+		cameraDragInput = nil
 	end
 end)
 
