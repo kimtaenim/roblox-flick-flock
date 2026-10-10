@@ -1,7 +1,7 @@
 @echo off
 REM ============================================================
 REM  Flick Flock - local Studio launcher
-REM  Run it once from anywhere; it puts an Al-kkagi launcher (.bat) on the Desktop.
+REM  Run it once from anywhere; it puts an Al-kkagi shortcut on the Desktop.
 REM  1. git clone (first time) / git pull (every time)
 REM  2. download Rojo + install the Rojo Studio plugin
 REM  3. build FlickFlock.rbxlx and open it in Roblox Studio
@@ -79,18 +79,23 @@ if /i not "%~3"=="--latest" (
     )
 )
 
-REM Put a small launcher named Al-kkagi (in Korean) on the Desktop. It calls the
-REM launcher inside the repo, so it always runs the latest version.
-REM The Korean file name is built from character codes so this file stays plain ASCII.
-echo [1/4] Updating desktop launcher ...
+REM Desktop shortcut named Al-kkagi (in Korean) -> the launcher inside the repo,
+REM so it always runs the latest version. Re-created every run so the Roblox Studio
+REM icon stays valid after Studio updates. The Korean name is built from character
+REM codes so this file stays plain ASCII.
+echo [1/4] Updating desktop shortcut ...
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "$desktop=[Environment]::GetFolderPath('Desktop');" ^
-  "$name=(-join [char[]](0xC54C,0xAE4C,0xAE30)) + '.bat';" ^
-  "$q=[char]34; $nl=[Environment]::NewLine;" ^
-  "$body='@echo off' + $nl + 'call ' + $q + '%REPO%\open-studio.bat' + $q + $nl;" ^
-  "[IO.File]::WriteAllText((Join-Path $desktop $name), $body, [Text.Encoding]::Default);" ^
-  "$old=Join-Path $desktop 'Flick Flock.lnk'; if (Test-Path $old) { Remove-Item $old }"
-if errorlevel 1 echo [WARN] Could not create the desktop launcher.
+  "$name=-join [char[]](0xC54C,0xAE4C,0xAE30);" ^
+  "$link=(New-Object -ComObject WScript.Shell).CreateShortcut((Join-Path $desktop ($name + '.lnk')));" ^
+  "$link.TargetPath='%REPO%\open-studio.bat';" ^
+  "$link.WorkingDirectory='%REPO%';" ^
+  "$link.Description='Flick Flock: git pull + Roblox Studio';" ^
+  "$studio=Get-ChildItem (Join-Path $env:LOCALAPPDATA 'Roblox\Versions') -Recurse -Filter RobloxStudioBeta.exe -ErrorAction SilentlyContinue | Select-Object -First 1;" ^
+  "if ($studio) { $link.IconLocation=$studio.FullName + ',0' };" ^
+  "$link.Save();" ^
+  "foreach ($old in @(($name + '.bat'), 'Flick Flock.lnk')) { $path=Join-Path $desktop $old; if (Test-Path $path) { Remove-Item $path } }"
+if errorlevel 1 echo [WARN] Could not create the desktop shortcut.
 
 set "ROJO_DIR=%REPO%\tools\rojo-%ROJO_VERSION%"
 set "ROJO=%ROJO_DIR%\rojo.exe"

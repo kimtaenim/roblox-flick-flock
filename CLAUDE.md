@@ -61,7 +61,7 @@
 - 똥알·유령은 반복 사용 가능 (`Config.ReusableAbilities`), 나머지 능력은 1회.
 - 유령·똥알·자석은 상대 턴 한 번 동안 (`Config.EffectTurns`). 똥알은 그동안 똥 모양. 자석은 고정이 아니라 아주 무거워져서 세게 맞으면 조금 밀림 (`Config.MagnetMassScale`).
 - 조준 취소 : 알 위로 돌아와서 놓기, 오른쪽 클릭, Esc. 차례는 그대로.
-- 배치파일은 git pull 뒤 레포 안의 최신 open-studio.bat 으로 넘겨서 실행 (바탕화면 복사본이 옛날 것이어도 됨). 실행하면 바탕화면에 `알까기.bat` 을 만든다 (레포 안 배치파일을 부르는 두 줄짜리).
+- 배치파일은 git pull 뒤 레포 안의 최신 open-studio.bat 으로 넘겨서 실행 (바탕화면 복사본이 옛날 것이어도 됨). 실행하면 바탕화면에 `알까기` 바로 가기를 만든다 (레포 안 open-studio.bat 을 가리킴, Studio 아이콘).
 - 말풍선 대사는 화면을 가려서 꺼 둠 (`Config.ShowSpeech = false`). 대사·캐릭터 코드는 그대로 있어서 true 로 바꾸면 다시 나옴.
 - 소리는 로블록스 기본 내장 소리 8개를 음 높이만 바꿔 씀 (`Config.Sounds`, `Config.Melodies`).
 - 둥근 알은 구슬이 아니라 바둑알처럼 볼록한 타원체. 물리 몸통은 원기둥이고 겉모양만 볼록 (`Config.RoundHeight`). 납작 알보다 미끄러워서 멀리 가고(friction), 세게 튄다(bounce).
