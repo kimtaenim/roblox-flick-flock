@@ -29,7 +29,7 @@ for _, ability in AbilityList.List do
 end
 
 -- 충돌 그룹
--- Pieces : 보통 알 / Ghost : 유령·똥 (판에만 닿고 알은 통과) / Characters : 캐릭터 (알과 안 부딪힘)
+-- Pieces : 보통 알 / Ghost : 유령 (판에만 닿고 알은 통과) / Characters : 캐릭터 (알과 안 부딪힘)
 local CHARACTER_GROUP = "Characters"
 local GHOST_GROUP = "Ghost"
 PhysicsService:RegisterCollisionGroup(PieceFactory.COLLISION_GROUP)
@@ -183,32 +183,6 @@ end
 
 ---------------------------------------------------------------- 매 프레임 물리
 
--- 똥을 이미 밟은 알 (같은 똥을 지나는 동안 한 번만 느려짐)
-local steppedInPoop: { [BasePart]: { [BasePart]: boolean } } = {}
-local lastFootprint: { [BasePart]: number } = {}
-
--- 구덩이 : 알이 움직이는 동안 구덩이 안에 들어오면 가운데로 끌려가고 느려진다 (고임)
-RunService.Heartbeat:Connect(function(dt)
-	local dipInfo = Config.Floors[Board.setup.floorKey].Dips
-	if not dipInfo or #Board.dips == 0 or state:GetAttribute("Phase") ~= "Moving" then
-		return
-	end
-	for _, piece in piecesFolder:GetChildren() do
-		if piece:IsA("BasePart") and not piece.Anchored then
-			for _, dip in Board.dips do
-				local offset = Vector3.new(dip.x - piece.Position.X, 0, dip.z - piece.Position.Z)
-				local distance = offset.Magnitude
-				if distance < dip.r then
-					local velocity = piece.AssemblyLinearVelocity
-					local pull = if distance > 0.2 then offset.Unit * dipInfo.Pull * dt * (distance / dip.r) else Vector3.zero
-					local slow = math.max(1 - dipInfo.Damping * dt, 0)
-					piece.AssemblyLinearVelocity = Vector3.new(velocity.X * slow, velocity.Y, velocity.Z * slow) + pull
-				end
-			end
-		end
-	end
-end)
-
 RunService.Heartbeat:Connect(function()
 	-- 판 밖으로 나간 알은 바로 탈락
 	local function sayGoodbye(piece: BasePart)
@@ -218,44 +192,6 @@ RunService.Heartbeat:Connect(function()
 		Effects.sound("Out")
 		Effects.sound("OutCry", nil, if removed.kind == "King" then 0.5 elseif removed.kind == "Half" then 1.3 else 1)
 		Effects.sparkle(removed.position, Config.Teams[removed.team].Color, 20)
-	end
-
-	local poops = {}
-	for _, piece in piecesFolder:GetChildren() do
-		if piece:IsA("BasePart") then
-			if piece:GetAttribute("Effect") == "Poop" then
-				table.insert(poops, piece)
-			end
-		end
-	end
-
-	-- 똥 밟기 : 똥과 겹친 알은 확 느려지고 발자국
-	for _, poop in poops do
-		local stepped = steppedInPoop[poop]
-		if not stepped then
-			stepped = {}
-			steppedInPoop[poop] = stepped
-		end
-		for _, other in piecesFolder:GetChildren() do
-			if other:IsA("BasePart") and other ~= poop and not other.Anchored then
-				local gap = (other.Position - poop.Position) * Vector3.new(1, 0, 1)
-				local touching = gap.Magnitude < PieceFactory.radius(poop) + PieceFactory.radius(other)
-				if touching then
-					if not stepped[other] then
-						stepped[other] = true
-						other.AssemblyLinearVelocity *= Config.PoopSlowFactor
-						Effects.sound("PoopStep", poop)
-					end
-					local now = os.clock()
-					if other.AssemblyLinearVelocity.Magnitude > 1 and now - (lastFootprint[other] or 0) > 0.15 then
-						lastFootprint[other] = now
-						Effects.footprint(other.Position)
-					end
-				else
-					stepped[other] = nil
-				end
-			end
-		end
 	end
 end)
 
@@ -273,7 +209,6 @@ end
 
 local function endEffect(piece: BasePart, effect: { id: string, turnsLeft: number })
 	activeEffects[piece] = nil
-	steppedInPoop[piece] = nil
 	if piece.Parent then
 		piece:SetAttribute("Effect", nil)
 		Abilities[effect.id].OnTurnEnd(piece)
@@ -522,7 +457,7 @@ local function playNpcTurn(team: number)
 			table.insert(shooterInfos, toInfo(piece))
 		end
 	end
-	-- 맞힐 수 있는 상대 알 / 길만 막는 알 (자석·유령·똥은 못 밀어냄)
+	-- 맞힐 수 있는 상대 알 / 길만 막는 알 (자석·유령은 못 밀어냄)
 	local targets, blockers = {}, {}
 	for _, piece in enemyPiecesOf(team) do
 		if piece.CollisionGroup == GHOST_GROUP then

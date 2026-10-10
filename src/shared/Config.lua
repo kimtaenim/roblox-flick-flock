@@ -206,7 +206,7 @@ Config.PresetTeams = {
 	{
 		Name = "마법팀",
 		Description = "신기한 능력이 가득",
-		Pieces = { { "Flat" }, { "Flat", "Teleport" }, { "Round", "Ghost" }, { "Flat", "Poop" } },
+		Pieces = { { "Flat" }, { "Flat", "Teleport" }, { "Round", "Ghost" }, { "Flat", "Summon" } },
 	},
 }
 
@@ -234,11 +234,9 @@ Config.MagnetMassScale = 6 -- 자석 알은 이만큼 무거워진다 (세게 �
 Config.MagnetFriction = 1.5 -- 자석 알이 바닥에 붙는 정도 (0~2)
 -- 효과가 유지되는 턴 수 (능력을 쓴 내 턴도 1로 센다)
 -- 2 = 능력을 쓴 뒤 상대 턴 한 번 동안
-Config.PoopSlowFactor = 0.35 -- 똥을 밟으면 속도가 이만큼으로 줄어듦
-Config.FootprintTime = 4 -- 똥 발자국이 남는 시간 (초)
-Config.EffectTurns = { Ghost = 2, Poop = 2, Magnet = 2 }
+Config.EffectTurns = { Ghost = 2, Magnet = 2 }
 -- 여러 번 쓸 수 있는 능력 (나머지는 한 번 쓰면 끝)
-Config.ReusableAbilities = { Poop = true, Ghost = true }
+Config.ReusableAbilities = { Ghost = true }
 -- 정해진 횟수만큼 쓸 수 있는 능력 (없으면 1번)
 Config.AbilityUses = {} -- 예 : { Summon = 2 }
 -- 소환 확률 (합이 100)
@@ -321,8 +319,7 @@ Config.Sounds = {
 	Boom = { Id = LAND, Pitch = { 0.2, 0.25 }, Volume = 1 }, -- 운석 쾅
 	Splash = { Id = SPLASH, Pitch = { 0.6, 0.7 }, Volume = 1 }, -- 고래 철퍼덕
 	Thud = { Id = LAND, Pitch = { 0.8, 1.2 }, Volume = 0.6 }, -- 불덩이·얼음 떨어짐
-	Poop = { Id = SPLASH, Pitch = { 0.5, 0.55 }, Volume = 1 }, -- 뿌직
-	PoopStep = { Id = SPLASH, Pitch = { 0.75, 0.9 } }, -- 똥 밟음
+	Poop = { Id = SPLASH, Pitch = { 0.5, 0.55 }, Volume = 1 }, -- 뿌직 (소환 꽝 비둘기)
 	-- 대사할 때 목소리
 	KingTalk = { Id = GETUP, Pitch = { 0.6, 0.7 }, Volume = 0.8 }, -- 왕알 : 굵게
 	Talk = { Id = STEP, Pitch = { 1.3, 1.6 }, Volume = 0.5 }, -- 일반 알 : 톡
@@ -378,7 +375,6 @@ Config.Lines = {
 		Teleport = { "순간이동!", "슝!" },
 		Magnet = { "꼼짝 마!", "착 붙었다!" },
 		Ghost = { "부우~ 유령이다~", "날 못 만지지~" },
-		Poop = { "뿌지직!", "밟지 마~ 밟으면 큰일나~" },
 	},
 }
 -- 알 캐릭터 : 판이 시작할 때 알마다 하나씩 (한 팀 안에서는 안 겹치게).

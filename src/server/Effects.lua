@@ -87,23 +87,6 @@ function Effects.explosion(position: Vector3)
 	Remotes.Effect:FireAllClients("Shake", Config.ShakeStrength)
 end
 
--- 똥 발자국
-function Effects.footprint(position: Vector3)
-	local mark = Instance.new("Part")
-	mark.Name = "Footprint"
-	mark.Anchored = true
-	mark.CanCollide = false
-	mark.CanQuery = false
-	mark.CanTouch = false
-	mark.Shape = Enum.PartType.Cylinder
-	mark.Size = Vector3.new(0.1, 1.4, 1)
-	mark.CFrame = CFrame.new(position.X, Config.BoardHeight + 0.06, position.Z) * CFrame.Angles(0, 0, math.rad(90))
-	mark.Color = Color3.fromRGB(110, 70, 30)
-	mark.Material = Enum.Material.SmoothPlastic
-	mark.Parent = effectsFolder
-	Debris:AddItem(mark, Config.FootprintTime)
-end
-
 -- 화면 가운데 큰 글씨
 function Effects.banner(text: string, color: Color3)
 	Remotes.Effect:FireAllClients("Banner", text, color)

@@ -196,7 +196,7 @@ local function drawPattern(parent: Instance)
 	end
 end
 
--- 곰돌이 얼굴 : 귀 안쪽, 눈, 코, 입 (밟고 지나갈 수 있는 그림)
+-- 곰돌이 얼굴 : 귀 안쪽, 눈, 주둥이, 볼 (밟고 지나갈 수 있는 그림)
 local function drawBearFace(parent: Instance)
 	local circles = Board.shape.circles
 	if not circles then
@@ -222,12 +222,11 @@ local function drawBearFace(parent: Instance)
 		local ear = circles[index]
 		disc("EarInside", ear.x, ear.z, ear.r * 0.55, Color3.fromRGB(240, 170, 170))
 	end
-	-- 얼굴은 귀 쪽(+X)이 위. 눈·코·입은 얼굴 가운데 둘레에 크게 (알이 다닐 자리를 덜 가리게 얇게)
+	-- 얼굴은 귀 쪽(+X)이 위. 눈·주둥이·볼은 얼굴 가운데 둘레에 크게 (알이 다닐 자리를 덜 가리게 얇게)
 	local r = face.r
 	disc("EyeLeft", face.x + r * 0.35, face.z + r * 0.35, r * 0.09, Color3.fromRGB(50, 35, 25))
 	disc("EyeRight", face.x + r * 0.35, face.z - r * 0.35, r * 0.09, Color3.fromRGB(50, 35, 25))
 	disc("Muzzle", face.x - r * 0.25, face.z, r * 0.3, Color3.fromRGB(235, 205, 160))
-	disc("Nose", face.x - r * 0.12, face.z, r * 0.1, Color3.fromRGB(50, 35, 25))
 	disc("Cheek1", face.x - r * 0.1, face.z + r * 0.6, r * 0.12, Color3.fromRGB(245, 160, 150))
 	disc("Cheek2", face.x - r * 0.1, face.z - r * 0.6, r * 0.12, Color3.fromRGB(245, 160, 150))
 end
