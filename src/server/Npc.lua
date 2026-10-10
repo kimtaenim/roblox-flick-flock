@@ -300,10 +300,29 @@ function Npc.chooseShot(mine: { PieceInfo }, enemies: { PieceInfo }, settings, r
 	local shooter = mine[result.shooter]
 	if shooter.isKing then
 		local slow = shooter.slow or settings.friction * settings.gravity
-		local room = distanceToEdge(shooter.x, shooter.z, result.dirX, result.dirZ, settings) - shooter.radius - 2
-		local safeSpeed = math.sqrt(2 * slow * math.max(room, 0))
-		local safePower = safeSpeed * shooter.mass / (settings.flickPower * (shooter.flickScale or 1))
-		result.power = math.min(result.power, safePower)
+		local powerPerSpeed = shooter.mass / (settings.flickPower * (shooter.flickScale or 1))
+		local function room(dx: number, dz: number): number
+			return math.max(distanceToEdge(shooter.x, shooter.z, dx, dz, settings) - shooter.radius - 2, 0)
+		end
+		local target = if result.target then enemies[result.target] else nil
+		local targetDistance = if target then math.sqrt((target.x - shooter.x) ^ 2 + (target.z - shooter.z) ^ 2) else 0
+		if target and room(result.dirX, result.dirZ) < targetDistance - shooter.radius - target.radius then
+			-- 용암·판 끝이 상대 왕알 앞을 막고 있다 : 안전하게 상대 쪽으로 가장 많이 다가가는 방향으로 돌아간다
+			local tx, tz = (target.x - shooter.x) / targetDistance, (target.z - shooter.z) / targetDistance
+			local bestProgress = -math.huge
+			for step = 0, 35 do
+				local angle = math.rad(step * 10)
+				local dx, dz = math.sin(angle), math.cos(angle)
+				local progress = (dx * tx + dz * tz) * math.min(room(dx, dz), targetDistance)
+				if progress > bestProgress then
+					bestProgress = progress
+					result.dirX, result.dirZ = dx, dz
+				end
+			end
+			result.power = 1
+		end
+		local safeSpeed = math.sqrt(2 * slow * room(result.dirX, result.dirZ))
+		result.power = math.min(result.power, safeSpeed * powerPerSpeed)
 	end
 	return result
 end
