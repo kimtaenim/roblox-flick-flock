@@ -109,6 +109,8 @@ Config.FootprintTime = 4 -- 똥 발자국이 남는 시간 (초)
 Config.EffectTurns = { Ghost = 2, Poop = 2, Magnet = 2 }
 -- 여러 번 쓸 수 있는 능력 (나머지는 한 번 쓰면 끝)
 Config.ReusableAbilities = { Poop = true, Ghost = true }
+-- 정해진 횟수만큼 쓸 수 있는 능력 (없으면 1번)
+Config.AbilityUses = { Summon = 2 }
 -- 소환 확률 (합이 100)
 -- 소환 : 하늘에서 거창한 것이 나타나 상대 진영을 공격한다 (진짜 물체가 떨어져서 부딪힘).
 -- Chance 합은 100. Result 는 Summon.lua 안의 소환 이름.

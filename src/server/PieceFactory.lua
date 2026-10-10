@@ -331,7 +331,9 @@ function PieceFactory.refreshAbilityTag(piece: BasePart)
 	label.TextScaled = true
 	label.TextColor3 = Color3.new(1, 1, 1)
 	label.TextStrokeTransparency = 0.3
-	label.Text = ability.Icon .. " " .. ability.Name
+	-- 여러 번 쓸 수 있으면 남은 횟수도 (예: "🐉 소환 ×2")
+	local usesLeft = (piece:GetAttribute("AbilityUsesLeft") :: number?) or Config.AbilityUses[ability.Id] or 1
+	label.Text = ability.Icon .. " " .. ability.Name .. (if usesLeft > 1 then " ×" .. usesLeft else "")
 	label.Parent = gui
 	gui.Parent = piece
 end

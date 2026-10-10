@@ -357,9 +357,15 @@ local function useAbility(piece: BasePart, team: number)
 		return
 	end
 	state:SetAttribute("Phase", "Moving")
-	-- 능력 알은 1회 사용 (Config.ReusableAbilities 는 계속 쓸 수 있음)
+	-- 능력 알은 1회 사용. Config.AbilityUses 는 정한 횟수만큼, Config.ReusableAbilities 는 계속.
 	if not Config.ReusableAbilities[ability.Id] then
-		piece:SetAttribute("Ability", nil)
+		local usesLeft = ((piece:GetAttribute("AbilityUsesLeft") :: number?) or Config.AbilityUses[ability.Id] or 1) - 1
+		if usesLeft <= 0 then
+			piece:SetAttribute("Ability", nil)
+			piece:SetAttribute("AbilityUsesLeft", nil)
+		else
+			piece:SetAttribute("AbilityUsesLeft", usesLeft)
+		end
 		PieceFactory.refreshAbilityTag(piece)
 	end
 	Effects.sound(if Config.Sounds[ability.Id] then ability.Id else "Ability", piece)
