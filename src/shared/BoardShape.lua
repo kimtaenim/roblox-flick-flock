@@ -262,11 +262,17 @@ function BoardShape.allowed(config, sizeKey: string, teamCount: number): boolean
 	return size ~= nil and (not size.TwoTeamsOnly or teamCount == 2)
 end
 
+-- 이 판에 이 바닥을 쓸 수 있는지 (호리병 + 화산처럼 너무 어려운 조합은 막는다)
+function BoardShape.floorAllowed(config, sizeKey: string, floorKey: string): boolean
+	local size = config.BoardSizes[sizeKey]
+	return config.Floors[floorKey] ~= nil and not (size and size.BlockedFloors and size.BlockedFloors[floorKey])
+end
+
 function BoardShape.makeSetup(config, sizeKey: string, floorKey: string, teamCount: number): Setup
 	if not BoardShape.allowed(config, sizeKey, teamCount) then
 		sizeKey = "Normal"
 	end
-	if not config.Floors[floorKey] then
+	if not BoardShape.floorAllowed(config, sizeKey, floorKey) then
 		floorKey = "Wood"
 	end
 	local size = config.BoardSizes[sizeKey]

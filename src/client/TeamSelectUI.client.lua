@@ -253,10 +253,19 @@ local function refreshModeButtons()
 	if not BoardShape.allowed(Config, mode.size, mode.teams) then
 		mode.size = Config.DefaultBoardSize
 	end
+	-- 이 판에서 못 쓰는 바닥이면 나무로
+	if not BoardShape.floorAllowed(Config, mode.size, mode.floor) then
+		mode.floor = Config.DefaultFloor
+	end
 	for rowName, choices in modeRows do
 		for _, choice in choices do
 			local selected = (mode :: any)[rowName] == choice.value
-			local usable = rowName ~= "size" or BoardShape.allowed(Config, choice.value, mode.teams)
+			local usable = true
+			if rowName == "size" then
+				usable = BoardShape.allowed(Config, choice.value, mode.teams)
+			elseif rowName == "floor" then
+				usable = BoardShape.floorAllowed(Config, mode.size, choice.value)
+			end
 			choice.button.BackgroundColor3 = if selected then SELECTED_COLOR else CARD_COLOR
 			choice.button.BackgroundTransparency = if usable then 0 else 0.6
 			choice.button.Active = usable
@@ -283,6 +292,9 @@ local function makeRow(rowName: string, label: string, y: number, entries: { { t
 		table.insert(modeRows[rowName], { button = button, value = entry.value })
 		button.Activated:Connect(function()
 			if rowName == "size" and not BoardShape.allowed(Config, entry.value, mode.teams) then
+				return
+			end
+			if rowName == "floor" and not BoardShape.floorAllowed(Config, mode.size, entry.value) then
 				return
 			end
 			(mode :: any)[rowName] = entry.value

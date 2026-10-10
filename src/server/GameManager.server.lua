@@ -710,7 +710,7 @@ Remotes.SelectMode.OnServerEvent:Connect(function(player, choice)
 	if typeof(size) ~= "string" or not Config.BoardSizes[size] or not BoardShape.allowed(Config, size, teams) then
 		return
 	end
-	if typeof(floor) ~= "string" or not Config.Floors[floor] then
+	if typeof(floor) ~= "string" or not BoardShape.floorAllowed(Config, size, floor) then
 		return
 	end
 	chosenMode = { teams = teams, size = size, floor = floor }
@@ -748,6 +748,27 @@ local function setupPieces()
 	Board.addTerrain(piecesFolder)
 end
 
+-- 알을 그 자리 판 위에 똑바로 눕혀 놓기 (기울었거나, 서 있거나, 다른 알 위에 올라탔을 때만)
+-- 원기둥은 X축이 높이라서 똑바로 = 몸의 X축이 하늘을 본다
+local function layFlat(piece: BasePart)
+	local half = PieceFactory.halfHeight(piece)
+	local upright = math.abs(piece.CFrame.RightVector:Dot(Vector3.yAxis)) > 0.97
+	local onBoard = math.abs(piece.Position.Y - (Config.BoardHeight + half)) < 0.6
+	if upright and onBoard then
+		return
+	end
+	-- 다른 알과 겹치지 않는 가장 가까운 자리 (보통은 바로 그 자리)
+	local radius = PieceFactory.radius(piece)
+	local spot = Placement.findFreeSpot(piece.Position.X, piece.Position.Z, radius, piecesFolder, piece)
+	if not spot then
+		return
+	end
+	-- 처음 만들 때와 같은 방향 (눈이 판 가운데를 본다)
+	piece.CFrame = CFrame.new(spot + Vector3.new(0, half + 0.05, 0)) * CFrame.Angles(0, 0, math.rad(90))
+	piece.AssemblyLinearVelocity = Vector3.zero
+	piece.AssemblyAngularVelocity = Vector3.zero
+end
+
 -- 모든 알이 멈출 때까지 기다린다
 local function waitUntilStopped()
 	-- 소환 연출이 끝날 때까지 (최대 20초)
@@ -776,14 +797,15 @@ local function waitUntilStopped()
 		end
 		stillTime = if moving then 0 else stillTime + dt
 		if stillTime >= Config.StopHoldTime then
-			return
+			break
 		end
 	end
-	-- 시간이 다 되면 모든 알을 그 자리에 멈춘다 (오래 기다리면 고장 난 것 같아서)
+	-- 모든 알을 그 자리에 멈추고 (시간이 다 됐을 때), 기울거나 선 알·떠 있는 알은 판 위에 똑바로 눕힌다
 	for _, piece in piecesFolder:GetChildren() do
 		if piece:IsA("BasePart") and not piece.Anchored then
 			piece.AssemblyLinearVelocity = Vector3.zero
 			piece.AssemblyAngularVelocity = Vector3.zero
+			layFlat(piece)
 		end
 	end
 end

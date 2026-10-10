@@ -51,6 +51,7 @@ Config.BoardSizes = {
 			[4] = { Distance = 22, Radius = 18, Center = 14 },
 		},
 		Budget = 12,
+		BlockedFloors = { Volcano = true }, -- 잘록한 허리 + 용암은 너무 어려워서
 		Two = { KingDistance = 34, Rows = { 16, 22 }, PerRow = 7, Spacing = 6 },
 		Many = { KingDistance = 34, Rows = { 18, 24 }, PerRow = 4, Spacing = 5.5 },
 	},
@@ -78,8 +79,8 @@ Config.Floors = {
 		Name = "얼음판",
 		Icon = "🧊",
 		Order = 2,
-		Friction = 0.04,
-		FrictionWeight = 10,
+		Friction = 0.1,
+		FrictionWeight = 5,
 		Color = Color3.fromRGB(180, 225, 255),
 		Material = "Ice",
 	},

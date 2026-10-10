@@ -412,6 +412,10 @@ for _, sizeKey in sizeKeys do
 		if BoardShape.allowed(Config, sizeKey, teamCount) then
 			local line = {}
 			for _, floorKey in floorKeys do
+				if not BoardShape.floorAllowed(Config, sizeKey, floorKey) then
+					table.insert(line, Config.Floors[floorKey].Name .. " (안 됨)")
+					continue
+				end
 				local turnsSum, draws = 0, 0
 				local boardSetup = BoardShape.makeSetup(Config, sizeKey, floorKey, teamCount)
 				local capacity = TeamLayout.capacity(boardSetup.layout)
