@@ -42,12 +42,17 @@ Config.BoardSizes = {
 		Name = "호리병 판",
 		Order = 4,
 		Size = 64,
-		-- 원 두 개를 이은 바이올린 몸통 모양 (팀은 양쪽 둥근 곳에). { x, z, 반지름 }
-		Shape = "Circles",
-		Circles = { { 0, 18, 24 }, { 0, -18, 24 } },
+		-- 팀마다 둥근 부분 하나 : 2팀은 호리병(바이올린 몸통), 3팀은 세잎, 4팀은 네잎클로버
+		-- Lobes[팀 수] = 판 가운데에서 둥근 부분까지 거리, 둥근 부분 반지름, 가운데를 채우는 원 반지름
+		Shape = "Lobes",
+		Lobes = {
+			[2] = { Distance = 18, Radius = 24, Center = 0 },
+			[3] = { Distance = 20, Radius = 20, Center = 12 },
+			[4] = { Distance = 22, Radius = 18, Center = 14 },
+		},
 		Budget = 12,
-		TwoTeamsOnly = true,
 		Two = { KingDistance = 34, Rows = { 16, 22 }, PerRow = 7, Spacing = 6 },
+		Many = { KingDistance = 34, Rows = { 18, 24 }, PerRow = 4, Spacing = 5.5 },
 	},
 	Bear = {
 		Name = "곰돌이 판",

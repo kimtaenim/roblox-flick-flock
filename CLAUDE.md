@@ -40,7 +40,7 @@
 | `src/shared/Config.lua` | 모든 숫자 |
 | `src/shared/AbilityList.lua` | 능력 이름·아이콘 (이름은 아들과 결정) |
 | `src/shared/Remotes.lua` | RemoteEvent + GameState(Attribute) |
-| `src/shared/BoardShape.lua` | 판 모양(사각형·육각형·호리병, 화산 구멍) 판 안·가장자리 거리, 판 설정 묶음(makeSetup : 크기·바닥·배치·마찰) (숫자만) |
+| `src/shared/BoardShape.lua` | 판 모양(사각형·육각형·원 여러 개 : 호리병·세잎·네잎·곰돌이, 화산 구멍) 판 안·가장자리 거리, 판 설정 묶음(makeSetup : 크기·바닥·배치·마찰) (숫자만) |
 | `src/shared/TeamLayout.lua` | 2~4팀 자리·방향·다음 차례 계산 (숫자만, 테스트 가능) |
 
 ## 진행 상황

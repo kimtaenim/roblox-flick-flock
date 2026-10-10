@@ -279,11 +279,25 @@ function BoardShape.makeSetup(config, sizeKey: string, floorKey: string, teamCou
 		holeRadius = math.min(floor.HoleRadius, layout.Rows[1] - 3)
 	end
 	local kind = BoardShape.pick(size.Shape or "Auto", teamCount)
+	local circles = size.Circles
+	if size.Shape == "Lobes" then
+		-- 팀마다 그 팀 쪽에 둥근 부분 하나 (팀 방향은 TeamLayout 과 같다 : i번째 팀 = (i-1) × 360/팀수 도)
+		local lobe = size.Lobes[teamCount] or size.Lobes[2]
+		circles = {}
+		for team = 1, teamCount do
+			local angle = (team - 1) * 2 * math.pi / teamCount
+			table.insert(circles, { math.sin(angle) * lobe.Distance, math.cos(angle) * lobe.Distance, lobe.Radius })
+		end
+		if lobe.Center > 0 then
+			table.insert(circles, { 0, 0, lobe.Center })
+		end
+		kind = "Circles"
+	end
 	return {
 		sizeKey = sizeKey,
 		floorKey = floorKey,
 		teamCount = teamCount,
-		shape = BoardShape.create(kind, size.Size, holeRadius, size.Circles),
+		shape = BoardShape.create(kind, size.Size, holeRadius, circles),
 		layout = layout,
 		friction = floor.Friction,
 		frictionWeight = floor.FrictionWeight or 1,
