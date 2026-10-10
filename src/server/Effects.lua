@@ -1,0 +1,95 @@
+-- 소리·연출 (서버에서 부르면 모두에게 보인다)
+local Debris = game:GetService("Debris")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared:WaitForChild("Config"))
+local Remotes = require(Shared:WaitForChild("Remotes"))
+
+local Effects = {}
+
+local effectsFolder = Instance.new("Folder")
+effectsFolder.Name = "Effects"
+effectsFolder.Parent = workspace
+
+-- 소리 : where 는 소리가 날 파트 (없으면 판 가운데)
+function Effects.sound(name: string, where: BasePart?)
+	local soundId = Config.Sounds[name]
+	if not soundId then
+		return
+	end
+	local holder = where or workspace:FindFirstChild("Board")
+	if not holder then
+		return
+	end
+	local sound = Instance.new("Sound")
+	sound.SoundId = soundId
+	sound.Volume = Config.SoundVolume
+	sound.RollOffMaxDistance = 300
+	sound.Parent = holder
+	sound:Play()
+	Debris:AddItem(sound, 4)
+end
+
+-- 반짝이 터뜨리기
+function Effects.sparkle(position: Vector3, color: Color3, amount: number)
+	local anchor = Instance.new("Part")
+	anchor.Anchored = true
+	anchor.CanCollide = false
+	anchor.CanQuery = false
+	anchor.CanTouch = false
+	anchor.Transparency = 1
+	anchor.Size = Vector3.one
+	anchor.Position = position
+	anchor.Parent = effectsFolder
+
+	local emitter = Instance.new("ParticleEmitter")
+	emitter.Color = ColorSequence.new(color)
+	emitter.LightEmission = 0.6
+	emitter.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(1, 0) })
+	emitter.Lifetime = NumberRange.new(0.5, 1)
+	emitter.Speed = NumberRange.new(10, 20)
+	emitter.SpreadAngle = Vector2.new(180, 180)
+	emitter.Rate = 0
+	emitter.Parent = anchor
+	emitter:Emit(amount)
+	Debris:AddItem(anchor, 2)
+end
+
+-- 폭발 모습 (알은 안 밀고 보이기만)
+function Effects.explosion(position: Vector3)
+	local explosion = Instance.new("Explosion")
+	explosion.Position = position
+	explosion.BlastRadius = Config.ExplosionRadius
+	explosion.BlastPressure = 0
+	explosion.DestroyJointRadiusPercent = 0
+	explosion.Parent = effectsFolder
+	Remotes.Effect:FireAllClients("Shake", Config.ShakeStrength)
+end
+
+-- 똥 발자국
+function Effects.footprint(position: Vector3)
+	local mark = Instance.new("Part")
+	mark.Name = "Footprint"
+	mark.Anchored = true
+	mark.CanCollide = false
+	mark.CanQuery = false
+	mark.CanTouch = false
+	mark.Shape = Enum.PartType.Cylinder
+	mark.Size = Vector3.new(0.1, 1.4, 1)
+	mark.CFrame = CFrame.new(position.X, Config.BoardHeight + 0.06, position.Z) * CFrame.Angles(0, 0, math.rad(90))
+	mark.Color = Color3.fromRGB(110, 70, 30)
+	mark.Material = Enum.Material.SmoothPlastic
+	mark.Parent = effectsFolder
+	Debris:AddItem(mark, Config.FootprintTime)
+end
+
+-- 화면 가운데 큰 글씨
+function Effects.banner(text: string, color: Color3)
+	Remotes.Effect:FireAllClients("Banner", text, color)
+end
+
+function Effects.folder(): Folder
+	return effectsFolder
+end
+
+return Effects

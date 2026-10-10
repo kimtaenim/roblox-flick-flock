@@ -14,13 +14,17 @@ function Elimination.isOut(piece: BasePart): boolean
 	return math.abs(position.X) > half or math.abs(position.Z) > half
 end
 
--- 탈락한 알을 지우고 개수를 돌려준다
-function Elimination.removeOutPieces(folder: Instance): number
-	local removed = 0
+-- 탈락한 알을 지우고, 지운 알 정보 목록을 돌려준다
+function Elimination.removeOutPieces(folder: Instance): { { team: number, kind: string, position: Vector3 } }
+	local removed = {}
 	for _, piece in folder:GetChildren() do
 		if piece:IsA("BasePart") and Elimination.isOut(piece) then
+			table.insert(removed, {
+				team = piece:GetAttribute("Team"),
+				kind = piece:GetAttribute("Kind"),
+				position = piece.Position,
+			})
 			piece:Destroy()
-			removed += 1
 		end
 	end
 	return removed

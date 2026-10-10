@@ -6,7 +6,8 @@
 
 local Npc = {}
 
-export type PieceInfo = { x: number, z: number, mass: number, radius: number }
+-- slow : 미끄러지거나 굴러가며 초당 줄어드는 속도 (없으면 판 마찰로 계산)
+export type PieceInfo = { x: number, z: number, mass: number, radius: number, slow: number? }
 export type Shot = { shooter: number, target: number?, dirX: number, dirZ: number, power: number }
 
 -- 점 (x, z) 에서 방향 (dx, dz) 로 갔을 때 판 가장자리까지 거리
@@ -56,19 +57,43 @@ local function powerNeeded(mine: PieceInfo, target: PieceInfo, settings): (numbe
 	end
 	dx, dz = dx / distance, dz / distance
 
-	local slow = settings.friction * settings.gravity -- 미끄러지며 줄어드는 속도 (초당)
+	local defaultSlow = settings.friction * settings.gravity -- 미끄러지며 줄어드는 속도 (초당)
+	local mineSlow = mine.slow or defaultSlow
+	local targetSlow = target.slow or defaultSlow
 	-- 상대 알이 가장자리를 넘을 때까지 가야 하는 거리 (가운데가 넘으면 탈락, 여유 1)
 	local targetTravel = distanceToEdge(target.x, target.z, dx, dz, settings.boardHalf) + 1
-	local targetSpeed = math.sqrt(2 * slow * targetTravel)
+	local targetSpeed = math.sqrt(2 * targetSlow * targetTravel)
 	-- 부딪힐 때 상대에게 전달되는 비율 (정면 충돌)
 	local transfer = (1 + settings.elasticity) * mine.mass / (mine.mass + target.mass)
 	local hitSpeed = targetSpeed / transfer
 	-- 부딪히기 전까지 내 알이 가는 거리
 	local gap = math.max(distance - mine.radius - target.radius, 0)
-	local startSpeed = math.sqrt(hitSpeed * hitSpeed + 2 * slow * gap) * settings.powerBoost
+	local startSpeed = math.sqrt(hitSpeed * hitSpeed + 2 * mineSlow * gap) * settings.powerBoost
 
 	local power = startSpeed * mine.mass / settings.flickPower
 	return power, dx, dz
+end
+
+-- 부딪힌 뒤 내 알이 계속 굴러가서 판 밖으로 떨어질지
+local function shooterFallsOff(mine: PieceInfo, target: PieceInfo, power: number, dx: number, dz: number, settings): boolean
+	local defaultSlow = settings.friction * settings.gravity
+	local mineSlow = mine.slow or defaultSlow
+	local distance = math.sqrt((target.x - mine.x) ^ 2 + (target.z - mine.z) ^ 2)
+	local gap = math.max(distance - mine.radius - target.radius, 0)
+	local startSpeed = math.min(power, 1) * settings.flickPower / mine.mass
+	local hitSpeedSq = startSpeed * startSpeed - 2 * mineSlow * gap
+	if hitSpeedSq <= 0 then
+		return false
+	end
+	-- 정면 충돌 뒤 내 알 속도
+	local leftSpeed = math.sqrt(hitSpeedSq) * (mine.mass - settings.elasticity * target.mass) / (mine.mass + target.mass)
+	if leftSpeed <= 0 then
+		return false
+	end
+	local travel = leftSpeed * leftSpeed / (2 * mineSlow)
+	local hitX = target.x - dx * (mine.radius + target.radius)
+	local hitZ = target.z - dz * (mine.radius + target.radius)
+	return travel > distanceToEdge(hitX, hitZ, dx, dz, settings.boardHalf)
 end
 
 local function rotate(dx: number, dz: number, degrees: number): (number, number)
@@ -77,7 +102,8 @@ local function rotate(dx: number, dz: number, degrees: number): (number, number)
 	return dx * c - dz * s, dx * s + dz * c
 end
 
-function Npc.chooseShot(mine: { PieceInfo }, enemies: { PieceInfo }, settings, random: Random?): Shot?
+-- others : 맞힐 수는 없지만 길을 막는 알 (자석 알 등)
+function Npc.chooseShot(mine: { PieceInfo }, enemies: { PieceInfo }, settings, random: Random?, others: { PieceInfo }?): Shot?
 	if #mine == 0 then
 		return nil
 	end
@@ -89,6 +115,11 @@ function Npc.chooseShot(mine: { PieceInfo }, enemies: { PieceInfo }, settings, r
 	end
 	for _, piece in enemies do
 		table.insert(everyone, piece)
+	end
+	if others then
+		for _, piece in others do
+			table.insert(everyone, piece)
+		end
 	end
 
 	local best: Shot? = nil
@@ -103,6 +134,9 @@ function Npc.chooseShot(mine: { PieceInfo }, enemies: { PieceInfo }, settings, r
 				end
 				if power > 1 then
 					score += 5 -- 힘이 모자라면 뒤로 미룬다
+				end
+				if shooterFallsOff(shooter, target, power, dx, dz, settings) then
+					score += 3 -- 내 알도 같이 떨어질 것 같으면 웬만하면 피한다
 				end
 				if score < bestScore then
 					bestScore = score

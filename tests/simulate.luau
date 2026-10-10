@@ -1,45 +1,83 @@
 -- Studio 없이 NPC 대 NPC 로 판을 돌려 보는 시뮬레이션.
 -- 실행 : luau tests/simulate.luau
--- 물리는 단순화 (원판 미끄러짐 + 마찰 + 탄성 충돌). 숫자는 Config.lua 와 맞춘다.
+-- 물리는 단순화 (원판 미끄러짐 + 공 굴러감 + 탄성 충돌). 숫자는 진짜 Config.lua 를 쓴다.
+-- 능력은 빼고 튕기기만 한다.
+
+-- Config.lua 는 Color3 (로블록스 타입)을 써서 그대로는 못 불러온다.
+-- tests/simulate.sh 가 가짜 Color3 를 붙인 사본을 tests/_build/Config.lua 로 만들어 준다.
+local Config = require("./_build/Config")
 local Npc = require("../src/server/Npc")
 
-local BOARD_HALF = 20
+local BOARD_HALF = Config.BoardSize / 2
 local GRAVITY = 196.2
-local FRICTION = 0.3
-local ELASTICITY = 0.4
-local FLICK_POWER = 700
-local MASS = 10
-local RADIUS = 2
+local SLIDE_SLOW = Config.BoardFriction * GRAVITY
 local DT = 1 / 240
-local MAX_TURNS = 80
+local MAX_TURNS = 120
 
 -- Roblox Random 대신 쓰는 간단한 난수
 local function makeRandom(seed: number)
 	local state = seed
+	local rng = {}
+	function rng.NextNumber(_, low: number?, high: number?): number
+		state = (state * 1103515245 + 12345) % 2147483648
+		local unit = state / 2147483648
+		if low and high then
+			return low + (high - low) * unit
+		end
+		return unit
+	end
+	function rng.NextInteger(self, low: number, high: number): number
+		return math.min(high, low + math.floor(self:NextNumber() * (high - low + 1)))
+	end
+	return rng
+end
+
+local function makePiece(kind: string, team: number, x: number, z: number)
+	local info = Config.Pieces[kind]
 	return {
-		NextNumber = function(_, low: number, high: number): number
-			state = (state * 1103515245 + 12345) % 2147483648
-			return low + (high - low) * (state / 2147483648)
-		end,
+		kind = kind,
+		team = team,
+		x = x,
+		z = z,
+		vx = 0,
+		vz = 0,
+		alive = true,
+		mass = info.mass * Config.MassUnit,
+		massFactor = info.mass,
+		radius = Config.PieceDiameter * info.size / 2,
+		slow = if info.rollSlow > 0 then info.rollSlow else SLIDE_SLOW,
+		hp = info.hp,
 	}
 end
 
-local function newGame()
-	local pieces = {}
-	for team = 1, 2 do
-		local side = if team == 1 then 1 else -1
-		for i = 1, 5 do
-			table.insert(pieces, { team = team, x = (i - 3) * 6, z = side * 12, vx = 0, vz = 0, alive = true })
-		end
+-- Placement.layoutTeam 과 같은 배치
+local function layoutTeam(team: number, entries, pieces)
+	local side = if team == 1 then 1 else -1
+	table.insert(pieces, makePiece("King", team, 0, side * Config.KingRowDistance))
+	local perRow = Config.PiecesPerRow
+	for index, entry in entries do
+		local row = math.floor((index - 1) / perRow) + 1
+		local rowDistance = Config.RowDistances[math.min(row, #Config.RowDistances)]
+		local inRow = math.min(#entries - (row - 1) * perRow, perRow)
+		local column = (index - 1) % perRow + 1
+		local x = (column - (inRow + 1) / 2) * Config.PieceSpacing
+		table.insert(pieces, makePiece(entry[1], team, x, side * rowDistance))
 	end
-	return pieces
+end
+
+-- Damage.formula 와 같은 식
+local function damageFormula(relativeSpeed: number, massFactor: number): number
+	if relativeSpeed < Config.DamageMinSpeed then
+		return 0
+	end
+	return relativeSpeed * massFactor * Config.DamageScale
 end
 
 local function step(pieces)
-	local slow = FRICTION * GRAVITY * DT
 	for _, p in pieces do
 		if p.alive then
 			local speed = math.sqrt(p.vx ^ 2 + p.vz ^ 2)
+			local slow = p.slow * DT
 			if speed <= slow then
 				p.vx, p.vz = 0, 0
 			else
@@ -50,7 +88,6 @@ local function step(pieces)
 			p.z += p.vz * DT
 		end
 	end
-	-- 충돌
 	for i = 1, #pieces do
 		local a = pieces[i]
 		for j = i + 1, #pieces do
@@ -58,17 +95,26 @@ local function step(pieces)
 			if a.alive and b.alive then
 				local dx, dz = b.x - a.x, b.z - a.z
 				local dist = math.sqrt(dx * dx + dz * dz)
-				if dist < RADIUS * 2 and dist > 1e-6 then
+				local minDist = a.radius + b.radius
+				if dist < minDist and dist > 1e-6 then
 					local nx, nz = dx / dist, dz / dist
 					local closing = (a.vx - b.vx) * nx + (a.vz - b.vz) * nz
 					if closing > 0 then
-						local impulse = (1 + ELASTICITY) * closing / 2 -- 같은 질량
-						a.vx -= impulse * nx
-						a.vz -= impulse * nz
-						b.vx += impulse * nx
-						b.vz += impulse * nz
+						-- 왕알 데미지 (상대속도 × 때린 알 질량 계수)
+						local relative = math.sqrt((a.vx - b.vx) ^ 2 + (a.vz - b.vz) ^ 2)
+						if a.kind == "King" then
+							a.hp -= damageFormula(relative, b.massFactor)
+						end
+						if b.kind == "King" then
+							b.hp -= damageFormula(relative, a.massFactor)
+						end
+						local impulse = (1 + Config.PieceElasticity) * closing / (1 / a.mass + 1 / b.mass)
+						a.vx -= impulse / a.mass * nx
+						a.vz -= impulse / a.mass * nz
+						b.vx += impulse / b.mass * nx
+						b.vz += impulse / b.mass * nz
 					end
-					local push = (RADIUS * 2 - dist) / 2
+					local push = (minDist - dist) / 2
 					a.x -= nx * push
 					a.z -= nz * push
 					b.x += nx * push
@@ -87,100 +133,127 @@ end
 
 local function anyMoving(pieces): boolean
 	for _, p in pieces do
-		if p.alive and (math.abs(p.vx) > 0.5 or math.abs(p.vz) > 0.5) then
+		if p.alive and (math.abs(p.vx) > Config.StopSpeed or math.abs(p.vz) > Config.StopSpeed) then
 			return true
 		end
 	end
 	return false
 end
 
-local function infos(pieces, team)
-	local list, refs = {}, {}
+-- GameManager.loseReason 과 같은 규칙
+local function loseReason(pieces, team: number): string?
+	local king, soldiers = nil, 0
 	for _, p in pieces do
 		if p.alive and p.team == team then
-			table.insert(list, { x = p.x, z = p.z, mass = MASS, radius = RADIUS })
-			table.insert(refs, p)
+			if p.kind == "King" then
+				king = p
+			else
+				soldiers += 1
+			end
 		end
 	end
-	return list, refs
-end
-
-local function count(pieces, team): number
-	local n = 0
-	for _, p in pieces do
-		if p.alive and p.team == team then
-			n += 1
-		end
+	if not king then
+		return "왕알 탈락"
 	end
-	return n
+	if king.hp <= 0 then
+		return "왕알 격파"
+	end
+	if soldiers == 0 then
+		return "알 전멸"
+	end
+	return nil
 end
 
-local function playGame(seed: number, aimError: number)
+local function infoOf(p)
+	return { x = p.x, z = p.z, mass = p.mass, radius = p.radius, slow = if p.slow ~= SLIDE_SLOW then p.slow else nil }
+end
+
+local function playGame(seed: number, presetRed: number, presetBlue: number)
 	local rng = makeRandom(seed)
-	local pieces = newGame()
+	local pieces = {}
+	layoutTeam(1, Config.PresetTeams[presetRed].Pieces, pieces)
+	layoutTeam(2, Config.PresetTeams[presetBlue].Pieces, pieces)
+
+	-- 시작 배치가 겹치거나 판 밖이면 안 된다
+	for i, a in pieces do
+		assert(math.abs(a.x) + a.radius <= BOARD_HALF and math.abs(a.z) + a.radius <= BOARD_HALF, "시작 알이 판 밖")
+		for j = i + 1, #pieces do
+			local b = pieces[j]
+			local dist = math.sqrt((a.x - b.x) ^ 2 + (a.z - b.z) ^ 2)
+			assert(dist >= a.radius + b.radius, "시작 알이 겹침: " .. a.kind .. " / " .. b.kind)
+		end
+	end
+
 	local team = 1
-	local hits, ownLosses = 0, 0
 	for turn = 1, MAX_TURNS do
-		local mine, refs = infos(pieces, team)
-		local enemies = infos(pieces, 3 - team)
-		local shot = Npc.chooseShot(mine, enemies, {
+		local shooters, shooterInfos, targets = {}, {}, {}
+		for _, p in pieces do
+			if p.alive then
+				if p.team == team and (Config.CanFlickKing or p.kind ~= "King") then
+					table.insert(shooters, p)
+					table.insert(shooterInfos, infoOf(p))
+				elseif p.team ~= team then
+					table.insert(targets, infoOf(p))
+				end
+			end
+		end
+		local shot = Npc.chooseShot(shooterInfos, targets, {
 			boardHalf = BOARD_HALF,
 			gravity = GRAVITY,
-			friction = FRICTION,
-			elasticity = ELASTICITY,
-			flickPower = FLICK_POWER,
-			powerBoost = 1.25,
-			aimErrorDegrees = aimError,
+			friction = Config.BoardFriction,
+			elasticity = Config.PieceElasticity,
+			flickPower = Config.FlickPower,
+			powerBoost = Config.NpcPowerBoost,
+			aimErrorDegrees = Config.NpcAimErrorDegrees,
 		}, rng :: any)
-		assert(shot, "NPC 가 샷을 못 골랐다")
-		assert(shot.power >= 0 and shot.power <= 1, "세기가 0~1 밖: " .. shot.power)
-		local length = math.sqrt(shot.dirX ^ 2 + shot.dirZ ^ 2)
-		assert(math.abs(length - 1) < 1e-6, "방향이 단위 벡터가 아님")
-
-		local enemyBefore, mineBefore = count(pieces, 3 - team), count(pieces, team)
-		local shooter = refs[shot.shooter]
-		local speed = shot.power * FLICK_POWER / MASS
-		shooter.vx, shooter.vz = shot.dirX * speed, shot.dirZ * speed
+		if shot then
+			assert(shot.power >= 0 and shot.power <= 1, "세기가 0~1 밖")
+			local shooter = shooters[shot.shooter]
+			local speed = math.max(shot.power, Config.MinFlickPower) * Config.FlickPower / shooter.mass
+			shooter.vx, shooter.vz = shot.dirX * speed, shot.dirZ * speed
+		end
 		local t = 0
 		repeat
 			step(pieces)
 			t += DT
-		until not anyMoving(pieces) or t > 12
-		if count(pieces, 3 - team) < enemyBefore then
-			hits += 1
-		end
-		ownLosses += mineBefore - count(pieces, team)
+		until not anyMoving(pieces) or t > Config.MaxMoveTime
 
-		local red, blue = count(pieces, 1), count(pieces, 2)
-		if red == 0 or blue == 0 then
-			local winner = if red == 0 and blue == 0 then "무승부" elseif red == 0 then "파랑" else "빨강"
-			return turn, winner, hits, ownLosses
+		local redLose, blueLose = loseReason(pieces, 1), loseReason(pieces, 2)
+		if redLose or blueLose then
+			local winner = if redLose and blueLose then 0 elseif redLose then 2 else 1
+			return turn, winner, redLose or blueLose
 		end
 		team = 3 - team
 	end
-	return MAX_TURNS, "끝나지 않음", hits, ownLosses
+	return MAX_TURNS, -1, "끝나지 않음"
 end
 
+local presetCount = #Config.PresetTeams
 local unfinished = 0
-for _, aimError in { 0, 10, 15 } do
-	local totalTurns, totalHits, totalOwn = 0, 0, 0
-	local games = 50
-	for seed = 1, games do
-		local turns, winner, hits, ownLosses = playGame(seed * 7919 + aimError, aimError)
-		if winner == "끝나지 않음" then
-			unfinished += 1
+local reasons: { [string]: number } = {}
+local totalGames, totalTurns = 0, 0
+print("추천 팀끼리 NPC 대전 (각 조합 10판)")
+for red = 1, presetCount do
+	local line = {}
+	for blue = 1, presetCount do
+		local redWins = 0
+		for seed = 1, 10 do
+			local turns, winner, reason = playGame(seed * 7919 + red * 31 + blue, red, blue)
+			totalGames += 1
+			totalTurns += turns
+			reasons[reason :: string] = (reasons[reason :: string] or 0) + 1
+			if winner == -1 then
+				unfinished += 1
+			elseif winner == 1 then
+				redWins += 1
+			end
 		end
-		totalTurns += turns
-		totalHits += hits
-		totalOwn += ownLosses
+		table.insert(line, string.format("%s %d승", Config.PresetTeams[blue].Name, redWins))
 	end
-	print(string.format(
-		"조준 오차 %2d도 : %d판 평균 %.1f턴, 명중률 %.0f%%, 판당 자책 %.2f개",
-		aimError,
-		games,
-		totalTurns / games,
-		100 * totalHits / totalTurns,
-		totalOwn / games
-	))
+	print(string.format("  빨강 %s vs  %s", Config.PresetTeams[red].Name, table.concat(line, " | ")))
+end
+print(string.format("총 %d판, 평균 %.1f턴", totalGames, totalTurns / totalGames))
+for reason, count in reasons do
+	print(string.format("  끝난 이유 %s : %d판", reason, count))
 end
 print(if unfinished == 0 then "모든 판이 승패로 끝남" else ("끝나지 않은 판: " .. unfinished))

@@ -2,7 +2,11 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
-local EVENT_NAMES = { "Flick" }
+-- Flick : 클라 → 서버 (알, 방향, 세기)
+-- UseAbility : 클라 → 서버 (능력 알)
+-- SelectTeam : 클라 → 서버 (추천 팀 번호 또는 { Flat = n, Round = n, Half = n, Ability = n })
+-- Effect : 서버 → 클라 (종류, 값...) 화면 흔들기·큰 글씨
+local EVENT_NAMES = { "Flick", "UseAbility", "SelectTeam", "Effect" }
 
 local Remotes = {}
 
@@ -18,17 +22,24 @@ if RunService:IsServer() then
 	folder.Parent = ReplicatedStorage
 
 	-- 게임 상태는 이 폴더의 Attribute 로 모두에게 보인다
-	-- Phase : Waiting / Aiming / Moving / GameOver
+	-- Phase : Waiting / TeamSelect / Aiming / Moving / GameOver
 	-- CurrentTeam : 1 또는 2
 	-- Winner : 0 없음, 1·2 이긴 팀, -1 무승부
-	-- Team1Owner / Team2Owner : 조종하는 플레이어 UserId
+	-- WinReason : 이긴 이유 글
+	-- Team1Owner / Team2Owner : 조종하는 플레이어 UserId (-1 = NPC)
+	-- Team1Ready / Team2Ready : 팀 고르기 끝났는지
+	-- SelectEndsAt : 팀 고르기 마감 시각 (workspace:GetServerTimeNow 기준)
 	local state = Instance.new("Folder")
 	state.Name = "GameState"
 	state:SetAttribute("Phase", "Waiting")
 	state:SetAttribute("CurrentTeam", 1)
 	state:SetAttribute("Winner", 0)
+	state:SetAttribute("WinReason", "")
 	state:SetAttribute("Team1Owner", 0)
 	state:SetAttribute("Team2Owner", 0)
+	state:SetAttribute("Team1Ready", false)
+	state:SetAttribute("Team2Ready", false)
+	state:SetAttribute("SelectEndsAt", 0)
 	state.Parent = ReplicatedStorage
 	Remotes.State = state
 else

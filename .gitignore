@@ -5,3 +5,4 @@
 *.rbxlx.lock
 # 배치파일이 내려받는 도구
 tools/
+tests/_build/
