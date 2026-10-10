@@ -94,12 +94,12 @@ Config.Floors = {
 		Friction = 0.3,
 		Color = Color3.fromRGB(150, 130, 100),
 		Material = "Ground",
-		-- 지형 세 가지. Count 는 보통 판 기준 (판 넓이에 맞춰 늘고 준다)
+		-- 지형 세 가지 : 가끔 생각과 다르게 굴러가는 랜덤 요소 정도로 약하게. Count 는 보통 판 기준 (판 넓이에 맞춰 늘고 준다)
 		-- Radius = 공 반지름 (공을 판에 묻어서 Height 만큼만 위로 솟게)
-		Bumps = { Count = 8, Radius = 1.6, Height = 0.8 }, -- 혹 : 작고 가팔라서 부딪히면 튕김
-		Mounds = { Count = 5, Radius = 7, Height = 0.9 }, -- 언덕 : 넓고 완만해서 빠르면 타고 점프
-		-- 구덩이 : 얕게 패인 곳. 알이 지나가면 가운데로 끌려가고(Pull) 느려져서(Damping) 고인다
-		Dips = { Count = 3, Radius = 4.5, Pull = 50, Damping = 2.5 },
+		Bumps = { Count = 4, Radius = 1.6, Height = 0.6 }, -- 혹 : 작고 가팔라서 부딪히면 튕김
+		Mounds = { Count = 3, Radius = 7, Height = 0.7 }, -- 언덕 : 넓고 완만해서 빠르면 타고 살짝 점프
+		-- 구덩이 : 얕게 패인 곳. 알이 지나가면 가운데로 살짝 끌리고(Pull) 조금 느려진다(Damping)
+		Dips = { Count = 2, Radius = 4.5, Pull = 15, Damping = 0.8 },
 	},
 	Chess = {
 		Name = "체스판",
