@@ -31,7 +31,7 @@
 | `src/server/Effects.lua` | 소리, 반짝이, 폭발, 발자국, 배너 |
 | `src/server/Npc.lua` | NPC 조준 계산 (숫자만 써서 Studio 없이 테스트 가능) |
 | `src/server/Abilities/*.lua` | 능력 8개 (`Execute(piece, context)` + `OnTurnEnd(piece)`) |
-| `src/client/FlickInput.client.lua` | 카메라·흔들림, 드래그 조준, 발사 요청 |
+| `src/client/FlickInput.client.lua` | 자유 카메라(Studio 식)·흔들림, 드래그 조준, 발사 요청 |
 | `src/client/AbilityUI.client.lua` | 능력 버튼 |
 | `src/client/TeamSelectUI.client.lua` | 추천 팀 / 고급 예산 조합 |
 | `src/client/TurnUI.client.lua` | 차례·알 개수·왕알 HP, 배너 |
