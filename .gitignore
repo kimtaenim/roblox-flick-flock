@@ -1,0 +1,7 @@
+# Studio에서 만든 로컬 플레이스 파일 (Rojo가 매번 다시 만듦)
+*.rbxl
+*.rbxlx
+*.rbxl.lock
+*.rbxlx.lock
+# 배치파일이 내려받는 도구
+tools/
