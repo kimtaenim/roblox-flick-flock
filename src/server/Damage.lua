@@ -6,6 +6,7 @@ local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Co
 
 local PieceFactory = require(script.Parent:WaitForChild("PieceFactory"))
 local Effects = require(script.Parent:WaitForChild("Effects"))
+local Speech = require(script.Parent:WaitForChild("Speech"))
 
 local Damage = {}
 
@@ -36,6 +37,11 @@ function Damage.apply(king: BasePart, amount: number, minHp: number?)
 	local newHp = math.max(hp - amount, math.max(minHp or 0, protectedMinHp))
 	if newHp < hp then
 		king:SetAttribute("Hp", newHp)
+		-- HP 가 많이 줄면 "살려줘~"
+		local lowHp = (king:GetAttribute("MaxHp") or 100) * Config.KingLowHpRatio
+		if hp >= lowHp and newHp < lowHp and newHp > 0 then
+			Speech.say(king, "LowHp", true)
+		end
 		Effects.sparkle(king.Position, Color3.fromRGB(255, 80, 80), math.clamp(math.floor(amount), 5, 30))
 	end
 end
@@ -59,6 +65,10 @@ local function onPieceTouched(piece: BasePart, other: BasePart)
 	then
 		lastSoundTime[piece] = now
 		Effects.sound("Hit", piece, 1 / math.max(PieceFactory.radius(piece) / 2, 0.25))
+		-- 맞은 알이 한마디 (왕알은 아래 데미지에서)
+		if other:GetAttribute("Kind") ~= "King" then
+			Speech.say(other, "Hit")
+		end
 	end
 
 	-- 왕알이면 데미지
@@ -78,6 +88,7 @@ local function onPieceTouched(piece: BasePart, other: BasePart)
 		hits[other] = now
 		Damage.apply(piece, amount)
 		Effects.sound("KingHit", piece)
+		Speech.say(piece, "Hit")
 	end
 end
 

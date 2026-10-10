@@ -15,6 +15,7 @@ local Elimination = require(script.Parent:WaitForChild("Elimination"))
 local Damage = require(script.Parent:WaitForChild("Damage"))
 local Effects = require(script.Parent:WaitForChild("Effects"))
 local Npc = require(script.Parent:WaitForChild("Npc"))
+local Speech = require(script.Parent:WaitForChild("Speech"))
 
 local state = Remotes.State
 local random = Random.new()
@@ -150,7 +151,10 @@ end
 
 RunService.Heartbeat:Connect(function()
 	-- 판 밖으로 나간 알은 바로 탈락
-	for _, removed in Elimination.removeOutPieces(piecesFolder) do
+	local function sayGoodbye(piece: BasePart)
+		Speech.say(piece, "Out", true)
+	end
+	for _, removed in Elimination.removeOutPieces(piecesFolder, sayGoodbye) do
 		Effects.sound("Out")
 		Effects.sound("OutCry", nil, if removed.kind == "King" then 0.5 elseif removed.kind == "Half" then 1.3 else 1)
 		Effects.sparkle(removed.position, Config.Teams[removed.team].Color, 20)
@@ -226,6 +230,7 @@ local function applyFlick(piece: BasePart, direction: Vector3, power: number)
 	piece:SetNetworkOwner(nil)
 	piece:ApplyImpulse(direction.Unit * power * Config.FlickPower)
 	Effects.sound("Flick", piece)
+	Speech.say(piece, "Flick")
 end
 
 local function useAbility(piece: BasePart, team: number)
@@ -240,6 +245,7 @@ local function useAbility(piece: BasePart, team: number)
 	PieceFactory.refreshAbilityTag(piece)
 	Effects.sound(if Config.Sounds[ability.Id] then ability.Id else "Ability", piece)
 	Effects.banner(Config.Teams[team].Name .. " : " .. ability.Icon .. " " .. ability.Name .. "!", Config.Teams[team].Color)
+	Speech.sayAbility(piece, ability.Id)
 	Abilities[ability.Id].Execute(piece, makeContext(team))
 end
 
@@ -568,6 +574,17 @@ local function playRound()
 		return
 	end
 	setupPieces()
+	-- 왕알들이 한마디씩
+	for team = 1, 2 do
+		local king = kingOf(team)
+		if king then
+			task.delay(team * 0.8, function()
+				if king.Parent then
+					Speech.say(king, "Start", true)
+				end
+			end)
+		end
+	end
 	state:SetAttribute("Winner", 0)
 	state:SetAttribute("WinReason", "")
 	state:SetAttribute("CurrentTeam", 1)
@@ -609,6 +626,24 @@ local function playRound()
 			state:SetAttribute("WinReason", if winner == -1 then "둘 다 쓰러졌어요" elseif winner == 1 then blueLose else redLose)
 			state:SetAttribute("Phase", "GameOver")
 			Effects.melody(if winner == -1 then "Draw" else "Win")
+			-- 이긴 팀 왕알과 알 하나가 환호
+			if winner ~= -1 then
+				local winners = piecesOf(winner)
+				local king = kingOf(winner)
+				if king then
+					Speech.say(king, "Win", true)
+				end
+				for _, piece in winners do
+					if piece ~= king then
+						task.delay(0.6, function()
+							if piece.Parent then
+								Speech.say(piece, "Win", true)
+							end
+						end)
+						break
+					end
+				end
+			end
 			task.wait(Config.RestartDelay)
 			return
 		end

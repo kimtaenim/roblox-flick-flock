@@ -149,6 +149,10 @@ Config.Sounds = {
 	Magnet = { Id = STEP, Pitch = { 0.4, 0.5 }, Volume = 1 },
 	Summon = { Id = JUMP, Pitch = { 1.6, 1.7 } },
 	Clone = { Id = JUMP, Pitch = { 1.9, 2.1 } },
+	-- 대사할 때 목소리
+	KingTalk = { Id = GETUP, Pitch = { 0.6, 0.7 }, Volume = 0.8 }, -- 왕알 : 굵게
+	Talk = { Id = STEP, Pitch = { 1.3, 1.6 }, Volume = 0.5 }, -- 일반 알 : 톡
+	Cute = { Id = JUMP, Pitch = { 2.2, 2.8 } }, -- 쪼꼬미 : 삐약
 }
 -- 여러 음을 이어서 (멜로디). Pitches 순서대로 Gap 초 간격.
 Config.Melodies = {
@@ -159,5 +163,44 @@ Config.Melodies = {
 }
 Config.HitSoundMinSpeed = 6 -- 이보다 느리게 부딪히면 소리 안 남
 Config.HitSoundCooldown = 0.12 -- 같은 알 소리 간격 (초)
+
+-- 대사 (말풍선). 마음대로 고치고 늘려도 된다! 목록에서 하나를 무작위로 고른다.
+-- King = 왕알, Normal = 납작·둥근 알, Small = 쪼꼬미(0.5 알) — 쪼꼬미는 귀여운 소리만 낸다.
+Config.Lines = {
+	King = {
+		Start = { "나를 지켜라!", "왕이 나가신다!", "덤벼라~!" },
+		Flick = { "왕도 움직인다!", "영차!", "비켜라~!" },
+		Hit = { "아야!", "감히 왕을!", "으윽, 내 왕관!", "그만 때려~" },
+		LowHp = { "살려줘~!", "나 이제 힘없어…", "도와줘 얘들아!" },
+		Out = { "왕이 떨어진다아아~", "안 돼애애~!" },
+		Win = { "내가 진짜 왕이다!", "이겼다! 만세!" },
+	},
+	Normal = {
+		Flick = { "간다~!", "날아라!", "받아랏!", "슝~!", "돌격!" },
+		Hit = { "으악!", "아얏!", "깜짝이야!", "왜 때려~" },
+		Out = { "안녀어엉~", "으아아아~", "나 떨어져어~" },
+		Win = { "우리가 이겼다!", "야호!" },
+	},
+	Small = {
+		Flick = { "삐약!", "뿅!", "쪼꼬미 출동!", "삐삐!" },
+		Hit = { "히잉!", "삐잉~", "앙!" },
+		Out = { "삐야아아~", "히이잉~" },
+		Win = { "꺄르륵~", "뿌잉뿌잉!" },
+	},
+	-- 능력 쓸 때 (능력 알이 외친다)
+	Ability = {
+		Explosion = { "펑 간다!", "다 비켜!" },
+		Summon = { "나와라 친구야!", "얍!" },
+		Clone = { "분신술!", "나 둘! 셋!" },
+		Giant = { "커져라!", "나 엄청 크다!" },
+		Teleport = { "순간이동!", "슝!" },
+		Magnet = { "꼼짝 마!", "착 붙었다!" },
+		Ghost = { "부우~ 유령이다~", "날 못 만지지~" },
+	},
+}
+Config.SpeechChance = { Start = 1, Flick = 0.6, Hit = 0.5, LowHp = 1, Out = 1, Win = 1, Ability = 1 } -- 대사할 확률
+Config.SpeechTime = 2.2 -- 말풍선이 떠 있는 시간 (초)
+Config.SpeechCooldown = 1.5 -- 같은 알이 다시 말하기까지 (초)
+Config.KingLowHpRatio = 0.3 -- 왕알 HP 가 이 비율 아래로 내려가면 "살려줘~"
 
 return Config

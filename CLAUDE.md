@@ -29,6 +29,7 @@
 | `src/server/Damage.lua` | 왕알 HP (충돌 데미지) |
 | `src/server/Elimination.lua` | 판 밖 탈락 |
 | `src/server/Effects.lua` | 소리, 반짝이, 폭발, 배너 |
+| `src/server/Speech.lua` | 알 대사 말풍선·목소리 (대사는 `Config.Lines`) |
 | `src/server/Npc.lua` | NPC 조준 계산 (숫자만 써서 Studio 없이 테스트 가능) |
 | `src/server/Abilities/*.lua` | 능력 7개 (`Execute(piece, context)` + `OnTurnEnd(piece)`) |
 | `src/client/FlickInput.client.lua` | 자유 카메라(Studio 식)·흔들림, 드래그 조준, 발사 요청 |
