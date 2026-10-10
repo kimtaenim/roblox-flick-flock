@@ -225,6 +225,10 @@ local function playGame(seed: number, presets: { number })
 			step(pieces)
 			t += DT
 		until not anyMoving(pieces) or t > Config.MaxMoveTime
+		-- GameManager 처럼 시간이 다 되면 그 자리에 멈춘다
+		for _, p in pieces do
+			p.vx, p.vz = 0, 0
+		end
 
 		-- 진 팀 탈락 (GameManager.knockOut 과 같은 규칙 : 남은 알도 치운다)
 		for checkTeam = 1, teamCount do

@@ -90,7 +90,7 @@ Config.PullBackToShoot = true -- true: 새총처럼 뒤로 끌어 쏘기, false:
 -- 턴
 Config.StopSpeed = 0.5 -- 이보다 느리면 멈춘 것
 Config.StopHoldTime = 1 -- 모두 멈춘 채 이 시간이 지나면 턴 넘김 (초)
-Config.MaxMoveTime = 12 -- 아무리 오래 움직여도 이 시간 뒤엔 턴 넘김 (초)
+Config.MaxMoveTime = 3 -- 이 시간이 지나면 모든 알을 그 자리에 멈추고 턴을 넘김 (초)
 Config.RestartDelay = 6 -- 승패가 난 뒤 새 판까지 (초)
 
 -- 능력

@@ -735,6 +735,13 @@ local function waitUntilStopped()
 			return
 		end
 	end
+	-- 시간이 다 되면 모든 알을 그 자리에 멈춘다 (오래 기다리면 고장 난 것 같아서)
+	for _, piece in piecesFolder:GetChildren() do
+		if piece:IsA("BasePart") and not piece.Anchored then
+			piece.AssemblyLinearVelocity = Vector3.zero
+			piece.AssemblyAngularVelocity = Vector3.zero
+		end
+	end
 end
 
 -- 진 팀 확인 : 왕알이 판 밖으로 나갔거나 HP 0 이면 진다 (왕알만 남아도 계속 싸운다)

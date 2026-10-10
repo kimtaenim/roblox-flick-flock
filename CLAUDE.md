@@ -60,6 +60,7 @@
 - 왕알만 남아도 계속 싸움. 지는 건 왕알 HP 0 또는 왕알이 판 밖으로 나갈 때뿐.
 - 똥알·유령은 반복 사용 가능 (`Config.ReusableAbilities`), 나머지 능력은 1회.
 - 유령·똥알·자석은 상대 턴 한 번 동안 (`Config.EffectTurns`). 똥알은 그동안 똥 모양. 자석은 고정이 아니라 아주 무거워져서 세게 맞으면 조금 밀림 (`Config.MagnetMassScale`).
+- 알이 3초 넘게 움직이면 모두 그 자리에 멈추고 턴을 넘김 (`Config.MaxMoveTime`).
 - 조준 취소 : 알 위로 돌아와서 놓기, 오른쪽 클릭, Esc. 차례는 그대로.
 - 배치파일은 git pull 뒤 레포 안의 최신 open-studio.bat 으로 넘겨서 실행 (바탕화면 복사본이 옛날 것이어도 됨). 실행하면 바탕화면에 `알까기` 바로 가기를 만든다 (레포 안 open-studio.bat 을 가리킴, Studio 아이콘).
 - 말풍선 대사는 화면을 가려서 꺼 둠 (`Config.ShowSpeech = false`). 대사·캐릭터 코드는 그대로 있어서 true 로 바꾸면 다시 나옴.
