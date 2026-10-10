@@ -89,6 +89,14 @@ local function onPieceTouched(piece: BasePart, other: BasePart)
 		Damage.apply(piece, amount)
 		Effects.sound("KingHit", piece)
 		Speech.say(piece, "Hit")
+		-- 상대 왕알을 맞힌 알은 으스댄다
+		if other:GetAttribute("Team") ~= piece:GetAttribute("Team") then
+			task.delay(0.5, function()
+				if other.Parent and math.random() < Config.SpeechChance.Brag then
+					Speech.say(other, "Brag", true)
+				end
+			end)
+		end
 	end
 end
 

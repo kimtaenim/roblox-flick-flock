@@ -287,7 +287,21 @@ local function applyFlick(piece: BasePart, direction: Vector3, power: number)
 	piece:SetNetworkOwner(nil)
 	piece:ApplyImpulse(direction.Unit * power * Config.FlickPower)
 	Effects.sound("Flick", piece)
-	Speech.say(piece, "Flick")
+	-- 상대 왕알을 노리고 치면 허세, 아니면 보통 대사
+	local enemyKing = kingOf(3 - (piece:GetAttribute("Team") :: number))
+	local aimingAtKing = false
+	if enemyKing then
+		local toKing = (enemyKing.Position - piece.Position) * Vector3.new(1, 0, 1)
+		if toKing.Magnitude > 0.1 then
+			local cosine = toKing.Unit:Dot(direction.Unit)
+			aimingAtKing = cosine >= math.cos(math.rad(Config.TauntAngle))
+		end
+	end
+	if aimingAtKing then
+		Speech.say(piece, "Taunt", true)
+	else
+		Speech.say(piece, "Flick")
+	end
 end
 
 local function useAbility(piece: BasePart, team: number)

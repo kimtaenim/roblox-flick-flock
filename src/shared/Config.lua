@@ -104,11 +104,13 @@ Config.SummonTable = {
 	{ Name = "꽝", Icon = "🐦", Chance = 10, Result = "Pigeon" }, -- 비둘기가 똥만 싸고 감
 }
 -- 소환물 : 떨어지는 물체 하나의 크기·무게·왕알 데미지
+-- 소환 한 번에 왕알 데미지 합이 약 40 (알까기 정타 30~35 보다 조금 세게)
+-- 드래곤 : 불덩이 3개쯤 맞음 × 13 / 블리자드 : 얼음 4개쯤 맞음 × 10
 Config.Summons = {
-	Fireball = { Size = 3, Mass = 1.5, KingDamage = 15, Count = 5 }, -- 드래곤 불덩이
+	Fireball = { Size = 3, Mass = 1.5, KingDamage = 13, Count = 5 }, -- 드래곤 불덩이
 	Meteor = { Size = 8, Mass = 4, KingDamage = 40 },
-	Ice = { Size = 2.5, Mass = 1, KingDamage = 8, Count = 10 }, -- 블리자드 얼음
-	Whale = { Size = 16, Mass = 6, KingDamage = 30 },
+	Ice = { Size = 2.5, Mass = 1, KingDamage = 10, Count = 10 }, -- 블리자드 얼음
+	Whale = { Size = 16, Mass = 6, KingDamage = 40 },
 	PigeonPoop = { Size = 1, Mass = 0.1, KingDamage = 1 },
 }
 Config.SummonLifetime = 4 -- 떨어진 물체가 사라지기까지 (초)
@@ -192,6 +194,8 @@ Config.HitSoundCooldown = 0.12 -- 같은 알 소리 간격 (초)
 Config.Lines = {
 	King = {
 		Start = { "나를 지켜라!", "왕이 나가신다!", "덤벼라~!" },
+		Taunt = { "왕은 하나뿐이다!", "무릎을 꿇어라!", "짐이 직접 나선다!" },
+		Brag = { "왕의 힘이다!", "어떠냐!" },
 		Flick = { "왕도 움직인다!", "영차!", "비켜라~!" },
 		Hit = { "아야!", "감히 왕을!", "으윽, 내 왕관!", "그만 때려~" },
 		LowHp = { "살려줘~!", "나 이제 힘없어…", "도와줘 얘들아!" },
@@ -200,12 +204,18 @@ Config.Lines = {
 	},
 	Normal = {
 		Flick = { "간다~!", "날아라!", "받아랏!", "슝~!", "돌격!" },
+		-- 상대 왕알을 노리고 칠 때 (허세)
+		Taunt = { "마지막으로 할 말은?", "잘 가라~", "왕관 내놔!", "각오해라!", "이게 진짜 힘이다!", "기도는 했냐?" },
+		-- 상대 왕알을 맞혔을 때
+		Brag = { "어때!", "봤냐!", "한 방이다!", "아직 멀었다!" },
 		Hit = { "으악!", "아얏!", "깜짝이야!", "왜 때려~" },
 		Out = { "안녀어엉~", "으아아아~", "나 떨어져어~" },
 		Win = { "우리가 이겼다!", "야호!" },
 	},
 	Small = {
 		Flick = { "삐약!", "뿅!", "쪼꼬미 출동!", "삐삐!" },
+		Taunt = { "쪼꼬미 펀치!", "삐약! (잘 가라)", "작다고 무시하지 마!" },
+		Brag = { "삐약삐약!", "꺄르륵~ 맞혔다!" },
 		Hit = { "히잉!", "삐잉~", "앙!" },
 		Out = { "삐야아아~", "히이잉~" },
 		Win = { "꺄르륵~", "뿌잉뿌잉!" },
@@ -222,9 +232,10 @@ Config.Lines = {
 		Poop = { "뿌지직!", "밟지 마~ 밟으면 큰일나~" },
 	},
 }
-Config.SpeechChance = { Start = 1, Flick = 0.6, Hit = 0.5, LowHp = 1, Out = 1, Win = 1, Ability = 1 } -- 대사할 확률
+Config.SpeechChance = { Start = 1, Flick = 0.6, Taunt = 1, Brag = 0.7, Hit = 0.5, LowHp = 1, Out = 1, Win = 1, Ability = 1 } -- 대사할 확률
 Config.SpeechTime = 2.2 -- 말풍선이 떠 있는 시간 (초)
 Config.SpeechCooldown = 1.5 -- 같은 알이 다시 말하기까지 (초)
+Config.TauntAngle = 20 -- 상대 왕알 쪽으로 이 각도(도) 안으로 치면 허세 대사
 Config.KingLowHpRatio = 0.3 -- 왕알 HP 가 이 비율 아래로 내려가면 "살려줘~"
 
 return Config

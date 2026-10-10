@@ -8,6 +8,8 @@ local Effects = require(script.Parent:WaitForChild("Effects"))
 local Speech = {}
 
 local lastSpoke: { [BasePart]: number } = {}
+-- 알마다 지금 떠 있는 말풍선 (새로 말하면 이전 것은 지운다)
+local currentBubble: { [BasePart]: BillboardGui } = {}
 
 -- 알 종류 → 대사 목록 묶음 이름
 local function voiceGroup(kind: string?): string
@@ -30,7 +32,17 @@ end
 
 -- 말풍선 만들기. 알이 사라지면 그 자리에 남아서 마저 보인다.
 local function showBubble(piece: BasePart, text: string, color: Color3)
+	local old = currentBubble[piece]
+	if old then
+		old:Destroy()
+	end
 	local gui = Instance.new("BillboardGui")
+	currentBubble[piece] = gui
+	gui.Destroying:Connect(function()
+		if currentBubble[piece] == gui then
+			currentBubble[piece] = nil
+		end
+	end)
 	gui.Name = "Speech"
 	gui.Size = UDim2.fromOffset(180, 46)
 	-- 왕알은 HP 막대 위로
