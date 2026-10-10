@@ -14,7 +14,8 @@ function Elimination.isOut(piece: BasePart): boolean
 	if position.Y < Config.BoardHeight - Config.FallDepth then
 		return true
 	end
-	return not BoardShape.inside(Board.edges, position.X, position.Z)
+	-- 판 밖이거나 화산 구멍 안이면 탈락
+	return not BoardShape.inside(Board.shape, position.X, position.Z)
 end
 
 -- 탈락한 알을 지우고, 지운 알 정보 목록을 돌려준다. beforeRemove 는 지우기 직전에 불린다 (대사 등).

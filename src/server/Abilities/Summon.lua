@@ -142,7 +142,7 @@ end
 -- 🐉 드래곤 : 상대 진영 위를 가로질러 날며 불덩이를 퍼붓는다
 local function dragon(context)
 	local direction, across = enemyDirection(context)
-	local half = Config.BoardSize / 2
+	local half = context.Board.shape.size / 2
 	local middle = Vector3.new(0, Config.BoardHeight + SKY_HEIGHT, 0) + direction * 12
 	local from = middle - across * (half + 20)
 	local to = middle + across * (half + 20)
@@ -218,7 +218,7 @@ local function blizzard(context)
 	cloud.CanQuery = false
 	cloud.CanTouch = false
 	local direction, across = enemyDirection(context)
-	cloud.Size = Vector3.new(Config.BoardSize, 8, Config.BoardSize / 2)
+	cloud.Size = Vector3.new(context.Board.shape.size, 8, context.Board.shape.size / 2)
 	-- 구름 긴 쪽이 상대 진영을 가로지르게
 	local cloudCenter = center + Vector3.new(0, SKY_HEIGHT, 0)
 	cloud.CFrame = CFrame.lookAt(cloudCenter, cloudCenter + direction)
@@ -240,7 +240,7 @@ local function blizzard(context)
 	local icon = makeFlyer("❄️", 14, cloud.Position + Vector3.new(0, 8, 0), context)
 	context.Effects.sound("Wind", cloud)
 
-	local half = Config.BoardSize / 2 - 2
+	local half = context.Board.shape.size / 2 - 2
 	local count = Config.Summons.Ice.Count
 	for index = 1, count do
 		task.wait(0.25)
@@ -252,7 +252,7 @@ local function blizzard(context)
 			-- 상대 진영 아무 데나 (판 안으로)
 			local spot = direction * context.random:NextNumber(4, half) + across * context.random:NextNumber(-half / 2, half / 2)
 			-- 판 밖이면 가운데 쪽으로 당긴다
-			while not context.BoardShape.inside(context.Board.edges, spot.X, spot.Z, 2) and spot.Magnitude > 1 do
+			while not context.BoardShape.inside(context.Board.shape, spot.X, spot.Z, 2) and spot.Magnitude > 1 do
 				spot *= 0.9
 			end
 			target = Vector3.new(spot.X, Config.BoardHeight, spot.Z)
@@ -300,7 +300,7 @@ end
 -- 🐦 꽝 : 비둘기가 날아와서 똥만 싸고 간다
 local function pigeon(context)
 	local direction, across = enemyDirection(context)
-	local half = Config.BoardSize / 2
+	local half = context.Board.shape.size / 2
 	local middle = Vector3.new(0, Config.BoardHeight + 25, 0) + direction * 10
 	local flyer = makeFlyer("🐦", 6, middle - across * (half + 10), context)
 	context.Effects.sound("Cute", flyer)

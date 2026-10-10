@@ -12,23 +12,20 @@ local function buildWalls(): Folder
 	local height = Config.ExplosionWallHeight
 	local thickness = 2
 	local y = Config.BoardHeight + height / 2
-	-- 판의 변마다 (마주 보는 변 둘 다) 바깥에 벽
-	for _, edge in Board.edges do
-		local normal = Vector3.new(edge.nx, 0, edge.nz)
-		for _, sign in { 1, -1 } do
-			local outward = normal * sign
-			local center = Vector3.new(0, y, 0) + outward * (edge.half + thickness / 2)
-			local wall = Instance.new("Part")
-			wall.Name = "Wall"
-			wall.Anchored = true
-			wall.Transparency = 1
-			wall.CanQuery = false
-			-- 모서리 틈이 없게 조금 길게
-			wall.Size = Vector3.new(edge.length + thickness * 3, height, thickness)
-			wall.CFrame = CFrame.lookAt(center, center + outward)
-			wall.CollisionGroup = "Pieces"
-			wall.Parent = walls
-		end
+	-- 판 가장자리(와 화산 구멍 둘레)를 따라 바깥에 벽
+	local BoardShape = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("BoardShape"))
+	for _, spot in BoardShape.wallSpots(Board.shape) do
+		local outward = Vector3.new(spot.nx, 0, spot.nz)
+		local center = Vector3.new(spot.x, y, spot.z) + outward * (thickness / 2)
+		local wall = Instance.new("Part")
+		wall.Name = "Wall"
+		wall.Anchored = true
+		wall.Transparency = 1
+		wall.CanQuery = false
+		wall.Size = Vector3.new(spot.length, height, thickness)
+		wall.CFrame = CFrame.lookAt(center, center + outward)
+		wall.CollisionGroup = "Pieces"
+		wall.Parent = walls
 	end
 	walls.Parent = workspace
 	return walls

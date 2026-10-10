@@ -9,9 +9,22 @@ local Remotes = require(Shared:WaitForChild("Remotes"))
 local PieceTypes = require(Shared:WaitForChild("PieceTypes"))
 local AbilityList = require(Shared:WaitForChild("AbilityList"))
 local TeamLayout = require(Shared:WaitForChild("TeamLayout"))
+local BoardShape = require(Shared:WaitForChild("BoardShape"))
+
 
 local player = Players.LocalPlayer
 local state = Remotes.State
+
+-- 이번 판에 한 팀이 놓을 수 있는 알 개수 (판 크기·팀 수에 따라)
+local function currentCapacity(): number
+	local setup = BoardShape.makeSetup(
+		Config,
+		state:GetAttribute("BoardSizeKey") or Config.DefaultBoardSize,
+		state:GetAttribute("FloorKey") or Config.DefaultFloor,
+		state:GetAttribute("TeamCount") or 2
+	)
+	return TeamLayout.capacity(setup.layout)
+end
 
 local CARD_COLOR = Color3.fromRGB(255, 248, 230)
 local TEXT_COLOR = Color3.fromRGB(60, 40, 20)
@@ -167,7 +180,7 @@ for index, name in rows do
 		refreshCustom()
 	end)
 	plus.Activated:Connect(function()
-		local maxPieces = TeamLayout.capacity(TeamLayout.pick(Config.Layouts, state:GetAttribute("TeamCount") or 2))
+		local maxPieces = currentCapacity()
 		if spent() + Config.Prices[name] <= Config.Budget and totalPieces() < maxPieces then
 			counts[name] += 1
 			refreshCustom()
@@ -195,11 +208,11 @@ waitingLabel.Visible = false
 
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- 모드 고르기 (방장만) : 2팀 / 3팀 / 4팀
+-- 모드 고르기 (방장만) : 팀 수, 판 크기·모양, 바닥을 고르고 "시작!"
 local modePanel = Instance.new("Frame")
 modePanel.AnchorPoint = Vector2.new(0.5, 0.5)
 modePanel.Position = UDim2.fromScale(0.5, 0.55)
-modePanel.Size = UDim2.new(0.8, 0, 0, 220)
+modePanel.Size = UDim2.new(0.92, 0, 0, 400)
 modePanel.BackgroundColor3 = Color3.fromRGB(40, 50, 70)
 modePanel.BackgroundTransparency = 0.15
 modePanel.Visible = false
@@ -208,22 +221,96 @@ local modeCorner = Instance.new("UICorner")
 modeCorner.CornerRadius = UDim.new(0, 16)
 modeCorner.Parent = modePanel
 local modeLimit = Instance.new("UISizeConstraint")
-modeLimit.MaxSize = Vector2.new(700, 220)
+modeLimit.MaxSize = Vector2.new(820, 400)
 modeLimit.Parent = modePanel
-makeText(modePanel, "몇 팀으로 할까요? (모자란 자리는 NPC)", UDim2.new(1, 0, 0, 40), UDim2.fromOffset(0, 12), 26)
-local modeTimer = makeText(modePanel, "", UDim2.new(0, 120, 0, 30), UDim2.new(1, -130, 0, 16), 22)
-for count = 2, #Config.Teams do
-	local button = makeButton(
-		modePanel,
-		count .. "팀",
-		UDim2.new(1 / (#Config.Teams - 1), -16, 0, 110),
-		UDim2.new((count - 2) / (#Config.Teams - 1), 8, 0, 80)
-	)
-	button.TextSize = 40
-	button.Activated:Connect(function()
-		Remotes.SelectMode:FireServer(count)
+makeText(modePanel, "어떤 판에서 할까요?", UDim2.new(1, 0, 0, 40), UDim2.fromOffset(0, 10), 28)
+local modeTimer = makeText(modePanel, "", UDim2.new(0, 120, 0, 30), UDim2.new(1, -130, 0, 14), 22)
+
+local SELECTED_COLOR = Color3.fromRGB(255, 200, 80)
+local mode = { teams = Config.DefaultTeamCount, size = Config.DefaultBoardSize, floor = Config.DefaultFloor }
+
+-- 이름순이 아니라 Config 의 Order 순서로
+local function sortedKeys(list): { string }
+	local keys = {}
+	for key in list do
+		table.insert(keys, key)
+	end
+	table.sort(keys, function(a, b)
+		return (list[a].Order or 99) < (list[b].Order or 99)
 	end)
+	return keys
 end
+
+type Choice = { button: TextButton, value: any }
+local modeRows: { [string]: { Choice } } = { teams = {}, size = {}, floor = {} }
+
+local function refreshModeButtons()
+	-- 호리병은 2팀만 : 팀 수를 바꾸면 보통 판으로
+	if not BoardShape.allowed(Config, mode.size, mode.teams) then
+		mode.size = Config.DefaultBoardSize
+	end
+	for rowName, choices in modeRows do
+		for _, choice in choices do
+			local selected = (mode :: any)[rowName] == choice.value
+			local usable = rowName ~= "size" or BoardShape.allowed(Config, choice.value, mode.teams)
+			choice.button.BackgroundColor3 = if selected then SELECTED_COLOR else CARD_COLOR
+			choice.button.BackgroundTransparency = if usable then 0 else 0.6
+			choice.button.Active = usable
+			choice.button.AutoButtonColor = usable
+		end
+	end
+end
+
+-- 한 줄 : 제목 + 버튼들
+local function makeRow(rowName: string, label: string, y: number, entries: { { text: string, value: any } })
+	makeText(modePanel, label, UDim2.new(0, 90, 0, 60), UDim2.fromOffset(10, y), 22).TextXAlignment = Enum.TextXAlignment.Left
+	local count = #entries
+	for index, entry in entries do
+		local button = makeButton(
+			modePanel,
+			entry.text,
+			UDim2.new(1 / count, -10 - 100 / count, 0, 60),
+			UDim2.new((index - 1) / count, 100 - (index - 1) * 100 / count + 5, 0, y)
+		)
+		button.TextSize = 22
+		table.insert(modeRows[rowName], { button = button, value = entry.value })
+		button.Activated:Connect(function()
+			if rowName == "size" and not BoardShape.allowed(Config, entry.value, mode.teams) then
+				return
+			end
+			(mode :: any)[rowName] = entry.value
+			refreshModeButtons()
+		end)
+	end
+end
+
+local teamEntries = {}
+for count = 2, #Config.Teams do
+	table.insert(teamEntries, { text = count .. "팀", value = count })
+end
+makeRow("teams", "팀 수", 60, teamEntries)
+
+local sizeEntries = {}
+for _, key in sortedKeys(Config.BoardSizes) do
+	local info = Config.BoardSizes[key]
+	table.insert(sizeEntries, { text = info.Name .. (if info.TwoTeamsOnly then "\n(2팀만)" else ""), value = key })
+end
+makeRow("size", "판", 135, sizeEntries)
+
+local floorEntries = {}
+for _, key in sortedKeys(Config.Floors) do
+	local info = Config.Floors[key]
+	table.insert(floorEntries, { text = (if info.Icon then info.Icon .. " " else "") .. info.Name, value = key })
+end
+makeRow("floor", "바닥", 210, floorEntries)
+
+local startButton = makeButton(modePanel, "시작! (모자란 자리는 NPC)", UDim2.new(0, 320, 0, 64), UDim2.new(0.5, -160, 0, 300))
+startButton.BackgroundColor3 = Color3.fromRGB(120, 220, 120)
+startButton.TextSize = 24
+startButton.Activated:Connect(function()
+	Remotes.SelectMode:FireServer({ teams = mode.teams, size = mode.size, floor = mode.floor })
+end)
+refreshModeButtons()
 
 -- 내가 지금 골라야 하는 팀 (없으면 nil)
 local function teamToPick(): number?
@@ -250,7 +337,7 @@ local function refresh()
 		title.Text = Config.Teams[team].Name .. " 팀을 골라요!"
 		title.TextColor3 = Config.Teams[team].Color
 		-- 3·4팀은 자리가 좁아서 알이 너무 많은 추천 팀은 못 고른다
-		local capacity = TeamLayout.capacity(TeamLayout.pick(Config.Layouts, state:GetAttribute("TeamCount") or 2))
+		local capacity = currentCapacity()
 		for index, card in presetCards do
 			local fits = #Config.PresetTeams[index].Pieces <= capacity
 			card.Active = fits
@@ -260,7 +347,7 @@ local function refresh()
 	end
 end
 
-local watched = { "Phase", "TeamCount", "HostUserId" }
+local watched = { "Phase", "TeamCount", "HostUserId", "BoardSizeKey" }
 for watchTeam = 1, #Config.Teams do
 	table.insert(watched, "Team" .. watchTeam .. "Ready")
 	table.insert(watched, "Team" .. watchTeam .. "Owner")

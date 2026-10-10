@@ -421,11 +421,11 @@ end)
 
 ---------------------------------------------------------------- NPC
 
--- 미끄러지며 초당 줄어드는 속도 = (알 마찰 + 판 마찰) / 2 × 중력
+-- 미끄러지며 초당 줄어드는 속도 (바닥 마찰에 따라 다르다 : 얼음판은 아주 작음)
 local function slowOf(piece: BasePart): number
 	local info = Config.Pieces[piece:GetAttribute("Kind") :: string]
-	local friction = if info then info.friction else Config.BoardFriction
-	return (friction + Config.BoardFriction) / 2 * workspace.Gravity
+	local friction = if info then info.friction else Board.setup.friction
+	return BoardShape.slowdown(Board.setup, friction, workspace.Gravity)
 end
 
 local function toInfo(piece: BasePart): Npc.PieceInfo
@@ -511,10 +511,10 @@ local function playNpcTurn(team: number)
 
 	local shot = Npc.chooseShot(shooterInfos, targets, {
 		distanceToEdge = function(x: number, z: number, dx: number, dz: number): number
-			return BoardShape.distanceToEdge(Board.edges, x, z, dx, dz)
+			return BoardShape.distanceToEdge(Board.shape, x, z, dx, dz)
 		end,
 		gravity = workspace.Gravity,
-		friction = Config.BoardFriction,
+		friction = Board.setup.friction,
 		elasticity = Config.Pieces.Flat.bounce,
 		flickPower = Config.FlickPower,
 		powerBoost = Config.NpcPowerBoost,
@@ -569,7 +569,7 @@ local function buildCustomTeam(choice: any): { { string } }?
 		total += count
 		cost += count * price
 	end
-	local capacity = TeamLayout.capacity(TeamLayout.pick(Config.Layouts, teamCount))
+	local capacity = TeamLayout.capacity(Board.setup.layout)
 	if total < 1 or cost > Config.Budget or total > capacity then
 		return nil
 	end
@@ -596,7 +596,7 @@ end
 
 -- 추천 팀이 자리에 다 들어가는지 (3·4팀은 한 팀 8개까지)
 local function presetFits(index: number): boolean
-	local capacity = TeamLayout.capacity(TeamLayout.pick(Config.Layouts, teamCount))
+	local capacity = TeamLayout.capacity(Board.setup.layout)
 	return #Config.PresetTeams[index].Pieces <= capacity
 end
 
@@ -672,19 +672,31 @@ local function runTeamSelect()
 	end
 end
 
--- 모드 고르기 : 방장(먼저 들어온 사람)이 2·3·4팀 중 고른다
-local chosenMode: number? = nil
+-- 모드 고르기 : 방장(먼저 들어온 사람)이 팀 수(2·3·4), 판 크기·모양, 바닥을 고른다
+type Mode = { teams: number, size: string, floor: string }
+local chosenMode: Mode? = nil
 
-Remotes.SelectMode.OnServerEvent:Connect(function(player, count)
+Remotes.SelectMode.OnServerEvent:Connect(function(player, choice)
 	if state:GetAttribute("Phase") ~= "ModeSelect" or player.UserId ~= state:GetAttribute("HostUserId") then
 		return
 	end
-	if typeof(count) == "number" and count == math.floor(count) and count >= 2 and count <= MAX_TEAMS then
-		chosenMode = count
+	if typeof(choice) ~= "table" then
+		return
 	end
+	local teams, size, floor = choice.teams, choice.size, choice.floor
+	if typeof(teams) ~= "number" or teams ~= math.floor(teams) or teams < 2 or teams > MAX_TEAMS then
+		return
+	end
+	if typeof(size) ~= "string" or not Config.BoardSizes[size] or not BoardShape.allowed(Config, size, teams) then
+		return
+	end
+	if typeof(floor) ~= "string" or not Config.Floors[floor] then
+		return
+	end
+	chosenMode = { teams = teams, size = size, floor = floor }
 end)
 
-local function runModeSelect()
+local function runModeSelect(): Mode
 	local host = Players:GetPlayers()[1]
 	chosenMode = nil
 	state:SetAttribute("HostUserId", if host then host.UserId else 0)
@@ -694,8 +706,12 @@ local function runModeSelect()
 	while not chosenMode and os.clock() < deadline and not restartRequested do
 		task.wait(0.1)
 	end
-	teamCount = chosenMode or Config.DefaultTeamCount
+	local mode = chosenMode or { teams = Config.DefaultTeamCount, size = Config.DefaultBoardSize, floor = Config.DefaultFloor }
+	teamCount = mode.teams
 	state:SetAttribute("TeamCount", teamCount)
+	state:SetAttribute("BoardSizeKey", mode.size)
+	state:SetAttribute("FloorKey", mode.floor)
+	return mode
 end
 
 ---------------------------------------------------------------- 판 진행
@@ -708,6 +724,8 @@ local function setupPieces()
 			watchPiece(piece)
 		end
 	end
+	-- 울퉁불퉁 바닥이면 알 사이 빈 자리에 혹
+	Board.addBumps(piecesFolder)
 end
 
 -- 모든 알이 멈출 때까지 기다린다
@@ -817,14 +835,14 @@ local function pickFirstTeam(): number
 end
 
 local function playRound()
-	runModeSelect()
+	local mode = runModeSelect()
 	if restartRequested then
 		return
 	end
 	assignTeams()
-	-- 팀 수에 맞는 판 (3팀은 육각형)
+	-- 고른 판 (팀 수에 따라 사각형·육각형, 호리병은 2팀만)
 	piecesFolder:ClearAllChildren()
-	Board.build(teamCount)
+	Board.build(teamCount, mode.size, mode.floor)
 	runTeamSelect()
 	if restartRequested then
 		return

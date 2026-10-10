@@ -11,7 +11,8 @@ local TeamLayout = require("../src/shared/TeamLayout")
 local BoardShape = require("../src/shared/BoardShape")
 
 -- 지금 판 모양 (playGame 이 팀 수에 맞게 바꾼다)
-local boardEdges = BoardShape.edges("Square", Config.BoardSize)
+-- 지금 판 설정 (playGame 이 판 크기·바닥·팀 수에 맞게 바꾼다)
+local setup = BoardShape.makeSetup(Config, "Normal", "Wood", 2)
 local GRAVITY = 196.2
 local DT = 1 / 240
 local MAX_TURNS = 120
@@ -47,7 +48,7 @@ local function makePiece(kind: string, team: number, x: number, z: number)
 		mass = info.mass * Config.MassUnit,
 		massFactor = info.mass,
 		radius = Config.PieceDiameter * info.size / 2,
-		slow = (info.friction + Config.BoardFriction) / 2 * GRAVITY, -- GameManager.slowOf 와 같은 식
+		slow = BoardShape.slowdown(setup, info.friction, GRAVITY), -- GameManager.slowOf 와 같은 식
 		bounce = info.bounce,
 		flickScale = info.flickScale or 1,
 		hp = info.hp,
@@ -56,7 +57,7 @@ end
 
 -- Placement.layoutTeam 과 같은 배치 (같은 TeamLayout 모듈을 쓴다)
 local function layoutTeam(team: number, teamCount: number, entries, pieces)
-	local layout = TeamLayout.pick(Config.Layouts, teamCount)
+	local layout = setup.layout
 	for _, slot in TeamLayout.slots(team, teamCount, entries, layout) do
 		table.insert(pieces, makePiece(slot.kind, team, slot.x, slot.z))
 	end
@@ -122,7 +123,7 @@ local function step(pieces)
 	end
 	-- 판 밖 탈락 (Elimination.lua 와 같은 규칙)
 	for _, p in pieces do
-		if p.alive and not BoardShape.inside(boardEdges, p.x, p.z) then
+		if p.alive and not BoardShape.inside(setup.shape, p.x, p.z) then
 			p.alive = false
 		end
 	end
@@ -163,10 +164,10 @@ local function infoOf(p)
 end
 
 -- presets : 팀마다 추천 팀 번호. 돌려주는 것 : 턴 수, 이긴 팀 (0 무승부, -1 안 끝남), 끝난 이유
-local function playGame(seed: number, presets: { number })
+local function playGame(seed: number, presets: { number }, sizeKey: string?, floorKey: string?)
 	local rng = makeRandom(seed)
 	local teamCount = #presets
-	boardEdges = BoardShape.edges(BoardShape.pick(Config.BoardShape, teamCount), Config.BoardSize)
+	setup = BoardShape.makeSetup(Config, sizeKey or "Normal", floorKey or "Wood", teamCount)
 	local pieces = {}
 	for team, preset in presets do
 		layoutTeam(team, teamCount, Config.PresetTeams[preset].Pieces, pieces)
@@ -174,7 +175,7 @@ local function playGame(seed: number, presets: { number })
 
 	-- 시작 배치가 겹치거나 판 밖이면 안 된다
 	for i, a in pieces do
-		assert(BoardShape.inside(boardEdges, a.x, a.z, a.radius), "시작 알이 판 밖: " .. a.kind)
+		assert(BoardShape.inside(setup.shape, a.x, a.z, a.radius), "시작 알이 판 밖(또는 구멍): " .. a.kind .. " " .. setup.sizeKey .. "/" .. setup.floorKey .. "/" .. teamCount .. "팀")
 		for j = i + 1, #pieces do
 			local b = pieces[j]
 			local dist = math.sqrt((a.x - b.x) ^ 2 + (a.z - b.z) ^ 2)
@@ -200,10 +201,10 @@ local function playGame(seed: number, presets: { number })
 		end
 		local shot = Npc.chooseShot(shooterInfos, targets, {
 			distanceToEdge = function(x, z, dx, dz)
-				return BoardShape.distanceToEdge(boardEdges, x, z, dx, dz)
+				return BoardShape.distanceToEdge(setup.shape, x, z, dx, dz)
 			end,
 			gravity = GRAVITY,
-			friction = Config.BoardFriction,
+			friction = setup.friction,
 			elasticity = Config.Pieces.Flat.bounce,
 			flickPower = Config.FlickPower,
 			powerBoost = Config.NpcPowerBoost,
@@ -313,7 +314,44 @@ for teamCount = 3, 4 do
 	for team = 1, teamCount do
 		table.insert(line, string.format("%s %d승", Config.Teams[team].Name, wins[team] or 0))
 	end
-	print(string.format("%d팀 (%s) : %d판, 평균 %.1f턴, 무승부 %d | %s", teamCount, BoardShape.pick(Config.BoardShape, teamCount), games, turnsSum / games, draws, table.concat(line, " · ")))
+	print(string.format("%d팀 (보통 판) : %d판, 평균 %.1f턴, 무승부 %d | %s", teamCount, games, turnsSum / games, draws, table.concat(line, " · ")))
+end
+
+-- 판 종류마다 : 크기·모양 × 바닥 × 팀 수 (시작 배치가 판 위에 있고 겹치지 않는지, 판이 끝나는지)
+print("판 종류별 (각 20판, 추천 팀 무작위)")
+local sizeKeys = { "Normal", "Small", "Large", "Gourd" }
+local floorKeys = { "Wood", "Ice", "Volcano" }
+for _, sizeKey in sizeKeys do
+	for teamCount = 2, 4 do
+		if BoardShape.allowed(Config, sizeKey, teamCount) then
+			local line = {}
+			for _, floorKey in floorKeys do
+				local turnsSum, draws = 0, 0
+				local capacity = TeamLayout.capacity(BoardShape.makeSetup(Config, sizeKey, floorKey, teamCount).layout)
+				for seed = 1, 20 do
+					local rng = makeRandom(seed * 7177 + teamCount)
+					local presets = {}
+					for team = 1, teamCount do
+						-- 자리에 들어가는 추천 팀만
+						local pick
+						repeat
+							pick = rng:NextInteger(1, presetCount)
+						until #Config.PresetTeams[pick].Pieces <= capacity
+						presets[team] = pick
+					end
+					local turns, winner = playGame(seed * 13 + teamCount, presets, sizeKey, floorKey)
+					turnsSum += turns
+					if winner == -1 then
+						unfinished += 1
+					elseif winner == 0 then
+						draws += 1
+					end
+				end
+				table.insert(line, string.format("%s %.0f턴(무%d)", Config.Floors[floorKey].Name, turnsSum / 20, draws))
+			end
+			print(string.format("  %s %d팀 : %s", Config.BoardSizes[sizeKey].Name, teamCount, table.concat(line, " · ")))
+		end
+	end
 end
 
 print(if unfinished == 0 then "모든 판이 승패로 끝남" else ("끝나지 않은 판: " .. unfinished))

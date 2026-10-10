@@ -5,11 +5,6 @@ local TeamLayout = {}
 export type Layout = { KingDistance: number, Rows: { number }, PerRow: number, Spacing: number }
 export type Slot = { kind: string, ability: string?, x: number, z: number }
 
--- 팀 수에 맞는 배치 (layouts = Config.Layouts)
-function TeamLayout.pick(layouts: { Two: Layout, Many: Layout }, teamCount: number): Layout
-	return if teamCount <= 2 then layouts.Two else layouts.Many
-end
-
 -- 판 가운데에서 팀 자리 쪽 방향 (x, z)
 function TeamLayout.direction(team: number, teamCount: number): (number, number)
 	local angle = (team - 1) * 2 * math.pi / math.max(teamCount, 1)

@@ -2,13 +2,83 @@
 local Config = {}
 
 -- 판
-Config.BoardSize = 64 -- 판 크기 : 마주 보는 두 변 사이 거리 (스터드)
-Config.BoardShape = "Auto" -- "Auto": 3팀은 육각형, 2·4팀은 사각형 / "Square" / "Hexagon"
 Config.BoardThickness = 2
 Config.BoardHeight = 6 -- 판 윗면 높이
-Config.BoardColor = Color3.fromRGB(196, 154, 108)
-Config.BoardFriction = 0.3 -- 판이 미끄러운 정도 (작을수록 미끄러움)
 Config.FallDepth = 3 -- 판 윗면보다 이만큼 아래로 떨어지면 탈락
+
+-- 판 크기·모양 : 방장이 판 시작 전에 고른다
+-- Size = 판 크기 (마주 보는 두 변 사이 거리). Shape "Auto" = 3팀은 육각형, 2·4팀은 사각형
+-- Two / Many = 2팀 / 3·4팀일 때 팀 배치 (판 가운데에서 왕알·알 줄까지 거리, 한 줄에 몇 개, 간격)
+Config.BoardSizes = {
+	Normal = {
+		Name = "보통 판",
+		Order = 1,
+		Size = 64,
+		Shape = "Auto",
+		Two = { KingDistance = 22, Rows = { 9, 14 }, PerRow = 7, Spacing = 6 },
+		Many = { KingDistance = 26, Rows = { 14, 19 }, PerRow = 4, Spacing = 5 },
+	},
+	Small = {
+		Name = "작은 판",
+		Order = 2,
+		Size = 48,
+		Shape = "Auto",
+		Two = { KingDistance = 17, Rows = { 6, 11 }, PerRow = 6, Spacing = 5.5 },
+		Many = { KingDistance = 19.5, Rows = { 8.5, 13 }, PerRow = 3, Spacing = 5 },
+	},
+	Large = {
+		Name = "큰 판",
+		Order = 3,
+		Size = 84,
+		Shape = "Auto",
+		Two = { KingDistance = 32, Rows = { 12, 18 }, PerRow = 7, Spacing = 6.5 },
+		Many = { KingDistance = 35, Rows = { 18, 24 }, PerRow = 4, Spacing = 5.5 },
+	},
+	Gourd = {
+		Name = "호리병 판",
+		Order = 4,
+		Size = 64,
+		Shape = "Gourd", -- 원 두 개를 이은 바이올린 몸통 모양 (팀은 양쪽 둥근 곳에)
+		TwoTeamsOnly = true,
+		Two = { KingDistance = 34, Rows = { 16, 22 }, PerRow = 7, Spacing = 6 },
+	},
+}
+Config.DefaultBoardSize = "Normal"
+
+-- 바닥 : 방장이 고른다. Friction 이 작을수록 미끄러움, FrictionWeight 가 크면 알 마찰보다 바닥 마찰을 따른다
+Config.Floors = {
+	Wood = { Name = "나무", Order = 1, Friction = 0.3, Color = Color3.fromRGB(196, 154, 108), Material = "Wood" },
+	Ice = {
+		Name = "얼음판",
+		Icon = "🧊",
+		Order = 2,
+		Friction = 0.04,
+		FrictionWeight = 10,
+		Color = Color3.fromRGB(180, 225, 255),
+		Material = "Ice",
+	},
+	Volcano = {
+		Name = "화산",
+		Icon = "🌋",
+		Order = 3,
+		Friction = 0.3,
+		Color = Color3.fromRGB(70, 60, 60),
+		Material = "Basalt",
+		HoleRadius = 6, -- 가운데 용암 구멍 (빠지면 탈락)
+	},
+	Bumpy = {
+		Name = "울퉁불퉁",
+		Icon = "🪨",
+		Order = 4,
+		Friction = 0.3,
+		Color = Color3.fromRGB(150, 130, 100),
+		Material = "Ground",
+		BumpCount = 14, -- 혹 개수
+		BumpRadius = 2.2,
+		BumpHeight = 0.7, -- 판 위로 솟은 높이
+	},
+}
+Config.DefaultFloor = "Wood"
 
 -- 알 공통
 Config.PieceDiameter = 4 -- 크기 1 알의 지름
@@ -45,12 +115,7 @@ Config.Teams = {
 Config.DefaultTeamCount = 2 -- 방장이 안 고르면
 Config.PlayerGoesLast = true -- NPC 와 할 때 NPC 가 먼저 치고 사람이 마지막 (늦게 치는 쪽이 유리해서). false 면 무작위
 Config.ModeSelectTime = 20 -- 방장이 모드(2·3·4팀) 고르는 시간 (초)
--- 팀 배치 : 판 가운데에서 왕알·알 줄까지 거리, 한 줄에 몇 개, 간격
--- 3·4팀은 옆 팀과 안 겹치게 더 뒤로, 좁게 앉는다
-Config.Layouts = {
-	Two = { KingDistance = 22, Rows = { 9, 14 }, PerRow = 7, Spacing = 6 },
-	Many = { KingDistance = 26, Rows = { 14, 19 }, PerRow = 4, Spacing = 5 },
-}
+
 
 -- 팀 선택 (예산제)
 Config.Budget = 12
@@ -110,7 +175,7 @@ Config.EffectTurns = { Ghost = 2, Poop = 2, Magnet = 2 }
 -- 여러 번 쓸 수 있는 능력 (나머지는 한 번 쓰면 끝)
 Config.ReusableAbilities = { Poop = true, Ghost = true }
 -- 정해진 횟수만큼 쓸 수 있는 능력 (없으면 1번)
-Config.AbilityUses = { Summon = 2 }
+Config.AbilityUses = {} -- 예 : { Summon = 2 }
 -- 소환 확률 (합이 100)
 -- 소환 : 하늘에서 거창한 것이 나타나 상대 진영을 공격한다 (진짜 물체가 떨어져서 부딪힘).
 -- Chance 합은 100. Result 는 Summon.lua 안의 소환 이름.

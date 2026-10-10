@@ -4,7 +4,7 @@ local RunService = game:GetService("RunService")
 
 -- Flick : 클라 → 서버 (알, 방향, 세기)
 -- UseAbility : 클라 → 서버 (능력 알)
--- SelectMode : 클라 → 서버 (팀 수 2·3·4, 방장만)
+-- SelectMode : 클라 → 서버 { teams = 2~4, size = Config.BoardSizes 이름, floor = Config.Floors 이름 } (방장만)
 -- SelectTeam : 클라 → 서버 (추천 팀 번호 또는 { Flat = n, Round = n, Half = n, Ability = n })
 -- Effect : 서버 → 클라 (종류, 값...) 화면 흔들기·큰 글씨
 local EVENT_NAMES = { "Flick", "UseAbility", "SelectMode", "SelectTeam", "Effect" }
@@ -37,6 +37,8 @@ if RunService:IsServer() then
 	state.Name = "GameState"
 	state:SetAttribute("Phase", "Waiting")
 	state:SetAttribute("TeamCount", 2)
+	state:SetAttribute("BoardSizeKey", "Normal") -- Config.BoardSizes 이름
+	state:SetAttribute("FloorKey", "Wood") -- Config.Floors 이름
 	state:SetAttribute("HostUserId", 0)
 	state:SetAttribute("CurrentTeam", 1)
 	state:SetAttribute("Winner", 0)

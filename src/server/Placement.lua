@@ -21,7 +21,7 @@ end
 
 -- (x, z) 에 반지름 radius 알을 놓으면 다른 알과 안 겹치는지
 function Placement.isFree(x: number, z: number, radius: number, folder: Instance, ignore: BasePart?): boolean
-	if not BoardShape.inside(Board.edges, x, z, radius + EDGE_GAP) then
+	if not BoardShape.inside(Board.shape, x, z, radius + EDGE_GAP) then
 		return false
 	end
 	for _, piece in folder:GetChildren() do
@@ -38,7 +38,7 @@ end
 
 -- 원하는 자리에서 가장 가까운 빈 자리
 function Placement.findFreeSpot(wantX: number, wantZ: number, radius: number, folder: Instance, ignore: BasePart?): Vector3?
-	local half = math.ceil(BoardShape.reach(Board.shape, Config.BoardSize))
+	local half = math.ceil(Board.shape.reach)
 	local best: Vector3? = nil
 	local bestDistance = math.huge
 	for x = -half, half do
@@ -88,7 +88,7 @@ end
 -- 팀 알 배치 : 왕알은 뒤쪽 가운데, 나머지는 앞줄부터 채운다
 -- pieces : { { kind, ability? }, ... }
 function Placement.layoutTeam(team: number, teamCount: number, pieces: { { string } }, folder: Instance): { BasePart }
-	local layout = TeamLayout.pick(Config.Layouts, teamCount)
+	local layout = Board.setup.layout
 	local created: { BasePart } = {}
 	local pickCharacter = makeCharacterPicker()
 	for _, slot in TeamLayout.slots(team, teamCount, pieces, layout) do

@@ -16,14 +16,14 @@
 - 2인 테스트: Test → Clients and Servers → 2 Players. 혼자 Play 하면 파랑은 NPC (`Config.SoloMode`).
 
 ## 테스트 (Studio 없이)
-- `sh tests/simulate.sh` : 진짜 Config 숫자로 NPC 대전 (튕기기만, 능력 제외). 2팀 추천 팀 조합 160판 + 3팀·4팀 각 100판. 시작 배치 겹침, 승패가 나는지, 팀·자리별 승리 수 출력.
+- `sh tests/simulate.sh` : 진짜 Config 숫자로 NPC 대전 (튕기기만, 능력 제외). 2팀 추천 팀 조합 160판 + 3팀·4팀 각 100판 + 판 크기·모양 × 바닥(나무·얼음·화산) × 팀 수 각 20판. 시작 배치 겹침, 승패가 나는지, 팀·자리별 승리 수 출력.
 - 타입 검사: `rojo sourcemap -o sourcemap.json` 후 `luau-lsp analyze --definitions=@roblox=globalTypes.d.luau --sourcemap=sourcemap.json src`
 
 ## 코드 위치
 | 파일 | 역할 |
 | --- | --- |
 | `src/server/GameManager.server.lua` | 팀 고르기·턴 진행, 요청 검증, 능력 효과 턴 관리, 승패 |
-| `src/server/Board.lua` | 판 생성 (팀 수에 따라 사각형·육각형) |
+| `src/server/Board.lua` | 판 생성 (모양·크기·바닥, 용암 구멍, 울퉁불퉁 혹) |
 | `src/server/PieceFactory.lua` | 알 생성 (Config.Pieces 다섯 값), 눈·왕관, HP 막대, 거대화 |
 | `src/server/Placement.lua` | 팀 배치, 빈 자리 찾기 |
 | `src/server/Damage.lua` | 왕알 HP (충돌 데미지) |
@@ -40,7 +40,7 @@
 | `src/shared/Config.lua` | 모든 숫자 |
 | `src/shared/AbilityList.lua` | 능력 이름·아이콘 (이름은 아들과 결정) |
 | `src/shared/Remotes.lua` | RemoteEvent + GameState(Attribute) |
-| `src/shared/BoardShape.lua` | 판 모양(사각형·육각형) 판 안·가장자리 거리 계산 (숫자만) |
+| `src/shared/BoardShape.lua` | 판 모양(사각형·육각형·호리병, 화산 구멍) 판 안·가장자리 거리, 판 설정 묶음(makeSetup : 크기·바닥·배치·마찰) (숫자만) |
 | `src/shared/TeamLayout.lua` | 2~4팀 자리·방향·다음 차례 계산 (숫자만, 테스트 가능) |
 
 ## 진행 상황
@@ -53,12 +53,13 @@
 - [x] 6단계: 알 디자인(눈·왕관, 임시), 소리, 튜토리얼
 - [x] 3·4팀 대결 (방장이 모드 선택, 모자란 자리는 NPC, 탈락제)
 - [x] 알 캐릭터 (이름·얼굴·성격 대사), 사람 후공, 3팀 육각형 판
+- [x] 판 고르기 : 보통·작은·큰·호리병 × 나무·얼음판·화산·울퉁불퉁
 - [ ] Studio 실제 플레이 테스트 후 고칠 것 정리 (물리 느낌, 소리 파일 존재 여부, UI 크기)
 
 ## 설계서에서 정한 해석
 - 왕알도 튕길 수 있음. 무거운 만큼 세게 튕겨서 잘 움직임 (`King.flickScale`). 거대화 알도 무게만큼 힘 보정 (`Config.HeavyFlickPower`).
 - 왕알만 남아도 계속 싸움. 지는 건 왕알 HP 0 또는 왕알이 판 밖으로 나갈 때뿐.
-- 똥알·유령은 반복 사용 가능 (`Config.ReusableAbilities`), 소환은 2번 (`Config.AbilityUses`), 나머지 능력은 1회.
+- 똥알·유령은 반복 사용 가능 (`Config.ReusableAbilities`), 소환 등 나머지는 1회 (횟수는 `Config.AbilityUses` 로 정할 수 있음), 나머지 능력은 1회.
 - 유령·똥알·자석은 상대 턴 한 번 동안 (`Config.EffectTurns`). 똥알은 그동안 똥 모양. 자석은 고정이 아니라 아주 무거워져서 세게 맞으면 조금 밀림 (`Config.MagnetMassScale`).
 - 알이 3초 넘게 움직이면 모두 그 자리에 멈추고 턴을 넘김 (`Config.MaxMoveTime`).
 - 조준 취소 : 알 위로 돌아와서 놓기, 오른쪽 클릭, Esc. 차례는 그대로.

@@ -62,6 +62,7 @@ local cameraYaw = 0 -- 좌우로 돈 각도 (라디안). 0 = -Z 쪽을 봄
 local cameraPitch = 0 -- 위아래 각도 (라디안). 음수 = 내려다봄
 local smoothCFrame: CFrame? = nil
 local lastSideTeam: number? = nil
+local lastBoardKey = ""
 local MAX_PITCH = math.rad(89)
 
 local function lookCFrame(): CFrame
@@ -75,8 +76,11 @@ local function resetCamera()
 	local back = Vector3.new(x, 0, z) -- 내 진영 쪽
 	local focus = Vector3.new(0, Config.BoardHeight, 0) + back * 4
 	local pitch = math.rad(Config.CameraPitch)
-	local flat = Config.CameraDistance * math.cos(pitch)
-	cameraPosition = focus + Vector3.new(0, Config.CameraDistance * math.sin(pitch), 0) + back * flat
+	-- 큰 판이면 더 멀리서, 작은 판이면 더 가까이서
+	local boardSize = Config.BoardSizes[state:GetAttribute("BoardSizeKey") or "Normal"]
+	local distance = Config.CameraDistance * (if boardSize then boardSize.Size / 64 else 1)
+	local flat = distance * math.cos(pitch)
+	cameraPosition = focus + Vector3.new(0, distance * math.sin(pitch), 0) + back * flat
 	local look = (focus - cameraPosition).Unit
 	cameraYaw = math.atan2(-look.X, -look.Z)
 	cameraPitch = math.asin(look.Y)
@@ -123,8 +127,10 @@ local MOVE_KEYS = {
 RunService:BindToRenderStep("FlickCamera", Enum.RenderPriority.Camera.Value + 1, function(dt)
 	-- 처음, 그리고 내 팀이 바뀌면 (혼자 두 팀일 때 차례가 바뀌면) 그 팀 뒤로
 	local team = myTeam() or 1
-	if team ~= lastSideTeam then
+	local boardKey = tostring(state:GetAttribute("BoardSizeKey")) .. tostring(state:GetAttribute("TeamCount"))
+	if team ~= lastSideTeam or boardKey ~= lastBoardKey then
 		lastSideTeam = team
+		lastBoardKey = boardKey
 		resetCamera()
 	end
 
