@@ -7,6 +7,7 @@ local UserInputService = game:GetService("UserInputService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
+local TeamLayout = require(Shared:WaitForChild("TeamLayout"))
 
 local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
@@ -24,7 +25,7 @@ local function myTeam(): number?
 	if state:GetAttribute("Team" .. current .. "Owner") == player.UserId then
 		return current
 	end
-	for team = 1, 2 do
+	for team = 1, (state:GetAttribute("TeamCount") or 2) do
 		if state:GetAttribute("Team" .. team .. "Owner") == player.UserId then
 			return team
 		end
@@ -70,11 +71,12 @@ end
 -- 내 진영 뒤에서 판을 내려다보는 처음 자리
 local function resetCamera()
 	local team = myTeam() or 1
-	local side = if team == 1 then 1 else -1
-	local focus = Vector3.new(0, Config.BoardHeight, side * 4)
+	local x, z = TeamLayout.direction(team, state:GetAttribute("TeamCount") or 2)
+	local back = Vector3.new(x, 0, z) -- 내 진영 쪽
+	local focus = Vector3.new(0, Config.BoardHeight, 0) + back * 4
 	local pitch = math.rad(Config.CameraPitch)
 	local flat = Config.CameraDistance * math.cos(pitch)
-	cameraPosition = focus + Vector3.new(0, Config.CameraDistance * math.sin(pitch), side * flat)
+	cameraPosition = focus + Vector3.new(0, Config.CameraDistance * math.sin(pitch), 0) + back * flat
 	local look = (focus - cameraPosition).Unit
 	cameraYaw = math.atan2(-look.X, -look.Z)
 	cameraPitch = math.asin(look.Y)

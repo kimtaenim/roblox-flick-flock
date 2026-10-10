@@ -16,6 +16,7 @@ local Damage = require(script.Parent:WaitForChild("Damage"))
 local Effects = require(script.Parent:WaitForChild("Effects"))
 local Npc = require(script.Parent:WaitForChild("Npc"))
 local Speech = require(script.Parent:WaitForChild("Speech"))
+local TeamLayout = require(Shared:WaitForChild("TeamLayout"))
 
 local state = Remotes.State
 local random = Random.new()
@@ -60,23 +61,30 @@ Damage.start(piecesFolder)
 
 ---------------------------------------------------------------- 팀 주인
 
--- teamOwners[1] = 빨강 플레이어, teamOwners[2] = 파랑 플레이어 (NPC 면 "Npc")
+-- teamOwners[팀 번호] = 그 팀을 조종하는 플레이어 (NPC 면 "Npc"). 팀 수는 teamCount.
 local NPC_OWNER_ID = -1
+local MAX_TEAMS = #Config.Teams
+local teamCount = Config.DefaultTeamCount
 local teamOwners: { [number]: Player | string | nil } = {}
+local outTeams: { [number]: boolean } = {} -- 탈락한 팀
 local restartRequested = false
 
+-- 들어온 순서대로 팀을 맡고, 모자란 자리는 NPC (BothTeams 면 첫 사람이 다 맡음). 남는 사람은 구경.
 local function assignTeams()
 	local list = Players:GetPlayers()
-	teamOwners[1] = list[1]
-	if list[2] then
-		teamOwners[2] = list[2]
-	elseif Config.SoloMode == "BothTeams" then
-		teamOwners[2] = list[1]
-	else
-		teamOwners[2] = "Npc"
-	end
-	for team = 1, 2 do
-		local owner = teamOwners[team]
+	table.clear(teamOwners)
+	for team = 1, MAX_TEAMS do
+		local owner: Player | string | nil = nil
+		if team <= teamCount then
+			if list[team] then
+				owner = list[team]
+			elseif Config.SoloMode == "BothTeams" then
+				owner = list[1]
+			else
+				owner = "Npc"
+			end
+		end
+		teamOwners[team] = owner
 		local ownerId = 0
 		if owner == "Npc" then
 			ownerId = NPC_OWNER_ID
@@ -87,21 +95,34 @@ local function assignTeams()
 	end
 end
 
-local function isSoloGame(): boolean
-	return teamOwners[1] ~= nil and (teamOwners[2] == "Npc" or teamOwners[1] == teamOwners[2])
+-- 사람이 들어오면 맡을 자리 (NPC 나 한 사람이 여러 팀) 가 있는지
+local function hasOpenSeat(): boolean
+	local seen = {}
+	for team = 1, teamCount do
+		local owner = teamOwners[team]
+		if owner == "Npc" or (owner and seen[owner]) then
+			return true
+		end
+		if owner then
+			seen[owner] = true
+		end
+	end
+	return false
 end
 
 Players.PlayerAdded:Connect(function(player)
 	player.CharacterAdded:Connect(onCharacterAdded)
-	-- 혼자 하던 중에 친구가 들어오면 2인으로 새로 시작
-	if isSoloGame() then
+	-- NPC 와 하던 중에 친구가 들어오면 새로 시작 (친구가 NPC 자리를 맡음)
+	if hasOpenSeat() then
 		restartRequested = true
 	end
 end)
 
 Players.PlayerRemoving:Connect(function(player)
-	if teamOwners[1] == player or teamOwners[2] == player then
-		restartRequested = true
+	for team = 1, teamCount do
+		if teamOwners[team] == player then
+			restartRequested = true
+		end
 	end
 end)
 
@@ -141,6 +162,28 @@ local function countSoldiers(team: number): number
 		end
 	end
 	return count
+end
+
+-- 아직 안 진 상대 팀들의 알
+local function enemyPiecesOf(team: number): { BasePart }
+	local list = {}
+	for _, piece in piecesFolder:GetChildren() do
+		local pieceTeam = piece:GetAttribute("Team")
+		if piece:IsA("BasePart") and pieceTeam ~= team and not outTeams[pieceTeam :: number] then
+			table.insert(list, piece)
+		end
+	end
+	return list
+end
+
+local function enemyKingsOf(team: number): { BasePart }
+	local list = {}
+	for _, piece in enemyPiecesOf(team) do
+		if piece:GetAttribute("Kind") == "King" then
+			table.insert(list, piece)
+		end
+	end
+	return list
 end
 
 local function watchPiece(piece: BasePart)
@@ -261,6 +304,17 @@ local function makeContext(team: number)
 		Damage = Damage,
 		Speech = Speech,
 		GHOST_GROUP = GHOST_GROUP,
+		teamCount = teamCount,
+		-- 아직 안 진 상대 팀 번호들
+		enemyTeams = function(): { number }
+			local list = {}
+			for other = 1, teamCount do
+				if other ~= team and not outTeams[other] then
+					table.insert(list, other)
+				end
+			end
+			return list
+		end,
 		startEffect = startEffect,
 		watchPiece = watchPiece,
 		onTurnEnd = function(callback: () -> ())
@@ -290,13 +344,11 @@ local function applyFlick(piece: BasePart, direction: Vector3, power: number)
 	piece:ApplyImpulse(direction.Unit * power * Config.FlickPower * flickScale)
 	Effects.sound("Flick", piece)
 	-- 상대 왕알을 노리고 치면 허세, 아니면 보통 대사
-	local enemyKing = kingOf(3 - (piece:GetAttribute("Team") :: number))
 	local aimingAtKing = false
-	if enemyKing then
+	for _, enemyKing in enemyKingsOf(piece:GetAttribute("Team") :: number) do
 		local toKing = (enemyKing.Position - piece.Position) * Vector3.new(1, 0, 1)
-		if toKing.Magnitude > 0.1 then
-			local cosine = toKing.Unit:Dot(direction.Unit)
-			aimingAtKing = cosine >= math.cos(math.rad(Config.TauntAngle))
+		if toKing.Magnitude > 0.1 and toKing.Unit:Dot(direction.Unit) >= math.cos(math.rad(Config.TauntAngle)) then
+			aimingAtKing = true
 		end
 	end
 	if aimingAtKing then
@@ -397,8 +449,7 @@ end
 -- NPC 가 쓸 만한 능력 알 고르기
 local function chooseNpcAbility(team: number): BasePart?
 	-- 상대 왕알 가까이 있는 폭발 알은 무조건 터뜨린다
-	local enemyKing = kingOf(3 - team)
-	if enemyKing then
+	for _, enemyKing in enemyKingsOf(team) do
 		for _, piece in piecesOf(team) do
 			if
 				piece:GetAttribute("Ability") == "Explosion"
@@ -416,7 +467,7 @@ local function chooseNpcAbility(team: number): BasePart?
 		local id = piece:GetAttribute("Ability")
 		if id == "Explosion" then
 			-- 주변에 상대 알이 있을 때만 터뜨린다
-			for _, enemy in piecesOf(3 - team) do
+			for _, enemy in enemyPiecesOf(team) do
 				if (enemy.Position - piece.Position).Magnitude < Config.ExplosionRadius * 0.7 then
 					table.insert(candidates, piece)
 					break
@@ -453,7 +504,7 @@ local function playNpcTurn(team: number)
 	end
 	-- 맞힐 수 있는 상대 알 / 길만 막는 알 (자석·유령·똥은 못 밀어냄)
 	local targets, blockers = {}, {}
-	for _, piece in piecesOf(3 - team) do
+	for _, piece in enemyPiecesOf(team) do
 		if piece.CollisionGroup == GHOST_GROUP then
 			continue
 		end
@@ -517,7 +568,8 @@ local function buildCustomTeam(choice: any): { { string } }?
 		total += count
 		cost += count * price
 	end
-	if total < 1 or cost > Config.Budget or total > Config.PiecesPerRow * #Config.RowDistances then
+	local capacity = TeamLayout.capacity(TeamLayout.pick(Config.Layouts, teamCount))
+	if total < 1 or cost > Config.Budget or total > capacity then
 		return nil
 	end
 	local list = {}
@@ -541,15 +593,24 @@ local function setChoice(team: number, pieces: { { string } })
 	state:SetAttribute("Team" .. team .. "Ready", true)
 end
 
+-- 추천 팀이 자리에 다 들어가는지 (3·4팀은 한 팀 8개까지)
+local function presetFits(index: number): boolean
+	local capacity = TeamLayout.capacity(TeamLayout.pick(Config.Layouts, teamCount))
+	return #Config.PresetTeams[index].Pieces <= capacity
+end
+
 Remotes.SelectTeam.OnServerEvent:Connect(function(player, choice)
 	if state:GetAttribute("Phase") ~= "TeamSelect" then
 		return
 	end
-	-- 이 플레이어가 맡은 팀 중 아직 안 고른 팀 (혼자 두 팀이면 빨강 먼저)
-	for team = 1, 2 do
+	-- 이 플레이어가 맡은 팀 중 아직 안 고른 팀 (혼자 여러 팀이면 앞 번호 먼저)
+	for team = 1, teamCount do
 		if teamOwners[team] == player and not state:GetAttribute("Team" .. team .. "Ready") then
 			local pieces
 			if typeof(choice) == "number" and Config.PresetTeams[choice] then
+				if not presetFits(choice) then
+					return
+				end
 				pieces = copyPreset(choice)
 			else
 				pieces = buildCustomTeam(choice)
@@ -562,32 +623,78 @@ Remotes.SelectTeam.OnServerEvent:Connect(function(player, choice)
 	end
 end)
 
+local function randomPreset(): number
+	local fitting = {}
+	for index in Config.PresetTeams do
+		if presetFits(index) then
+			table.insert(fitting, index)
+		end
+	end
+	return fitting[random:NextInteger(1, #fitting)]
+end
+
+local function allChosen(): boolean
+	for team = 1, teamCount do
+		if not teamChoices[team] then
+			return false
+		end
+	end
+	return true
+end
+
 local function runTeamSelect()
 	table.clear(teamChoices)
-	state:SetAttribute("Team1Ready", false)
-	state:SetAttribute("Team2Ready", false)
+	for team = 1, MAX_TEAMS do
+		state:SetAttribute("Team" .. team .. "Ready", false)
+	end
 	state:SetAttribute("SelectEndsAt", workspace:GetServerTimeNow() + Config.TeamSelectTime)
 	state:SetAttribute("Phase", "TeamSelect")
 
-	for team = 1, 2 do
+	for team = 1, teamCount do
 		if teamOwners[team] == "Npc" then
-			task.delay(1, function()
+			task.delay(0.5 + team * 0.3, function()
 				if state:GetAttribute("Phase") == "TeamSelect" and not teamChoices[team] then
-					setChoice(team, copyPreset(random:NextInteger(1, #Config.PresetTeams)))
+					setChoice(team, copyPreset(randomPreset()))
 				end
 			end)
 		end
 	end
 
 	local deadline = os.clock() + Config.TeamSelectTime
-	while not (teamChoices[1] and teamChoices[2]) and os.clock() < deadline and not restartRequested do
+	while not allChosen() and os.clock() < deadline and not restartRequested do
 		task.wait(0.1)
 	end
-	for team = 1, 2 do
+	for team = 1, teamCount do
 		if not teamChoices[team] then
 			setChoice(team, copyPreset(1))
 		end
 	end
+end
+
+-- 모드 고르기 : 방장(먼저 들어온 사람)이 2·3·4팀 중 고른다
+local chosenMode: number? = nil
+
+Remotes.SelectMode.OnServerEvent:Connect(function(player, count)
+	if state:GetAttribute("Phase") ~= "ModeSelect" or player.UserId ~= state:GetAttribute("HostUserId") then
+		return
+	end
+	if typeof(count) == "number" and count == math.floor(count) and count >= 2 and count <= MAX_TEAMS then
+		chosenMode = count
+	end
+end)
+
+local function runModeSelect()
+	local host = Players:GetPlayers()[1]
+	chosenMode = nil
+	state:SetAttribute("HostUserId", if host then host.UserId else 0)
+	state:SetAttribute("SelectEndsAt", workspace:GetServerTimeNow() + Config.ModeSelectTime)
+	state:SetAttribute("Phase", "ModeSelect")
+	local deadline = os.clock() + Config.ModeSelectTime
+	while not chosenMode and os.clock() < deadline and not restartRequested do
+		task.wait(0.1)
+	end
+	teamCount = chosenMode or Config.DefaultTeamCount
+	state:SetAttribute("TeamCount", teamCount)
 end
 
 ---------------------------------------------------------------- 판 진행
@@ -595,8 +702,8 @@ end
 local function setupPieces()
 	clearAllEffects()
 	piecesFolder:ClearAllChildren()
-	for team = 1, 2 do
-		for _, piece in Placement.layoutTeam(team, teamChoices[team] or copyPreset(1), piecesFolder) do
+	for team = 1, teamCount do
+		for _, piece in Placement.layoutTeam(team, teamCount, teamChoices[team] or copyPreset(1), piecesFolder) do
 			watchPiece(piece)
 		end
 	end
@@ -650,14 +757,65 @@ local function loseReason(team: number): string?
 	return nil
 end
 
+-- 팀 탈락 : 남은 알을 치우고 알린다
+local function knockOut(team: number, reason: string)
+	outTeams[team] = true
+	state:SetAttribute("Team" .. team .. "Out", true)
+	for _, piece in piecesOf(team) do
+		Effects.sparkle(piece.Position, Config.Teams[team].Color, 15)
+		piece:Destroy()
+	end
+	if teamCount > 2 then
+		Effects.banner(Config.Teams[team].Name .. " 탈락! " .. reason, Config.Teams[team].Color)
+	end
+end
+
+local function aliveTeams(): { number }
+	local list = {}
+	for team = 1, teamCount do
+		if not outTeams[team] then
+			table.insert(list, team)
+		end
+	end
+	return list
+end
+
+local function cheer(winner: number)
+	local king = kingOf(winner)
+	if king then
+		Speech.say(king, "Win", true)
+	end
+	for _, piece in piecesOf(winner) do
+		if piece ~= king then
+			task.delay(0.6, function()
+				if piece.Parent then
+					Speech.say(piece, "Win", true)
+				end
+			end)
+			break
+		end
+	end
+end
+
 local function playRound()
+	runModeSelect()
+	if restartRequested then
+		return
+	end
+	assignTeams()
 	runTeamSelect()
 	if restartRequested then
 		return
 	end
+	table.clear(outTeams)
+	for team = 1, MAX_TEAMS do
+		-- 이번 판에 없는 팀은 처음부터 탈락 처리
+		outTeams[team] = team > teamCount
+		state:SetAttribute("Team" .. team .. "Out", team > teamCount)
+	end
 	setupPieces()
 	-- 왕알들이 한마디씩
-	for team = 1, 2 do
+	for team = 1, teamCount do
 		local king = kingOf(team)
 		if king then
 			task.delay(team * 0.8, function()
@@ -669,7 +827,10 @@ local function playRound()
 	end
 	state:SetAttribute("Winner", 0)
 	state:SetAttribute("WinReason", "")
-	state:SetAttribute("CurrentTeam", 1)
+	-- 먼저 치는 팀은 판마다 무작위 (늦게 치는 팀이 유리해지지 않게)
+	local firstTeam = random:NextInteger(1, teamCount)
+	state:SetAttribute("CurrentTeam", firstTeam)
+	Effects.banner(Config.Teams[firstTeam].Name .. " 먼저!", Config.Teams[firstTeam].Color)
 
 	while true do
 		state:SetAttribute("Phase", "Aiming")
@@ -692,7 +853,7 @@ local function playRound()
 		onTurnEnd()
 
 		-- 쓰러진 왕알 정리
-		for checkTeam = 1, 2 do
+		for _, checkTeam in aliveTeams() do
 			local king = kingOf(checkTeam)
 			if king and (king:GetAttribute("Hp") or 0) <= 0 then
 				Effects.explosion(king.Position)
@@ -701,36 +862,31 @@ local function playRound()
 			end
 		end
 
-		local redLose, blueLose = loseReason(1), loseReason(2)
-		if redLose or blueLose then
-			local winner = if redLose and blueLose then -1 elseif redLose then 2 else 1
+		-- 진 팀 탈락
+		local lastReason = ""
+		for _, checkTeam in aliveTeams() do
+			local reason = loseReason(checkTeam)
+			if reason then
+				lastReason = reason
+				knockOut(checkTeam, reason)
+			end
+		end
+
+		local alive = aliveTeams()
+		if #alive <= 1 then
+			local winner = alive[1] or -1
 			state:SetAttribute("Winner", winner)
-			state:SetAttribute("WinReason", if winner == -1 then "둘 다 쓰러졌어요" elseif winner == 1 then blueLose else redLose)
+			state:SetAttribute("WinReason", if winner == -1 then "모두 쓰러졌어요" else lastReason)
 			state:SetAttribute("Phase", "GameOver")
 			Effects.melody(if winner == -1 then "Draw" else "Win")
-			-- 이긴 팀 왕알과 알 하나가 환호
 			if winner ~= -1 then
-				local winners = piecesOf(winner)
-				local king = kingOf(winner)
-				if king then
-					Speech.say(king, "Win", true)
-				end
-				for _, piece in winners do
-					if piece ~= king then
-						task.delay(0.6, function()
-							if piece.Parent then
-								Speech.say(piece, "Win", true)
-							end
-						end)
-						break
-					end
-				end
+				cheer(winner)
 			end
 			task.wait(Config.RestartDelay)
 			return
 		end
 
-		state:SetAttribute("CurrentTeam", 3 - team)
+		state:SetAttribute("CurrentTeam", TeamLayout.nextTeam(team, teamCount, outTeams) or alive[1])
 	end
 end
 
@@ -753,7 +909,6 @@ while true do
 	end
 
 	restartRequested = false
-	assignTeams()
 	while not restartRequested do
 		playRound()
 	end

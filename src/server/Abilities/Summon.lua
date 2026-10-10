@@ -29,10 +29,11 @@ end
 
 ---------------------------------------------------------------- 도우미
 
+-- 이번 소환이 공격할 팀 (context.targetTeam, Execute 에서 정함)
 local function enemyPieces(context): { BasePart }
 	local list = {}
 	for _, piece in context.piecesFolder:GetChildren() do
-		if piece:IsA("BasePart") and piece:GetAttribute("Team") ~= context.team then
+		if piece:IsA("BasePart") and piece:GetAttribute("Team") == context.targetTeam then
 			table.insert(list, piece)
 		end
 	end
@@ -48,10 +49,16 @@ local function enemyKing(context): BasePart?
 	return nil
 end
 
--- 상대 진영 가운데쯤
+-- 공격할 팀 쪽 방향, 그 옆 방향
+local function enemyDirection(context): (Vector3, Vector3)
+	local direction = context.Placement.direction(context.targetTeam, context.teamCount)
+	return direction, Vector3.new(direction.Z, 0, -direction.X)
+end
+
+-- 공격할 팀 진영 가운데쯤
 local function enemyCenter(context): Vector3
-	local side = context.Placement.side(3 - context.team)
-	return Vector3.new(0, Config.BoardHeight, side * Config.RowDistances[2])
+	local direction = enemyDirection(context)
+	return Vector3.new(0, Config.BoardHeight, 0) + direction * 14
 end
 
 -- 하늘에 떠서 움직이는 큰 그림 (이모지)
@@ -134,11 +141,11 @@ end
 
 -- 🐉 드래곤 : 상대 진영 위를 가로질러 날며 불덩이를 퍼붓는다
 local function dragon(context)
-	local side = context.Placement.side(3 - context.team)
+	local direction, across = enemyDirection(context)
 	local half = Config.BoardSize / 2
-	local y = Config.BoardHeight + SKY_HEIGHT
-	local from = Vector3.new(-half - 20, y, side * 12)
-	local to = Vector3.new(half + 20, y, side * 12)
+	local middle = Vector3.new(0, Config.BoardHeight + SKY_HEIGHT, 0) + direction * 12
+	local from = middle - across * (half + 20)
+	local to = middle + across * (half + 20)
 	local flyer = makeFlyer("🐉", 22, from, context)
 	local fire = Instance.new("Fire")
 	fire.Size = 12
@@ -179,8 +186,8 @@ end
 local function meteor(context)
 	local king = enemyKing(context)
 	local target = if king then king.Position else enemyCenter(context)
-	local side = context.Placement.side(3 - context.team)
-	local start = target + Vector3.new(40, SKY_HEIGHT + 60, side * 40)
+	local direction, across = enemyDirection(context)
+	local start = target + direction * 40 + across * 40 + Vector3.new(0, SKY_HEIGHT + 60, 0)
 	local rock = launch(context, "Meteor", start, target, 1.6, function(part)
 		part.Color = Color3.fromRGB(90, 60, 50)
 		part.Material = Enum.Material.Slate
@@ -210,8 +217,11 @@ local function blizzard(context)
 	cloud.CanCollide = false
 	cloud.CanQuery = false
 	cloud.CanTouch = false
+	local direction, across = enemyDirection(context)
 	cloud.Size = Vector3.new(Config.BoardSize, 8, Config.BoardSize / 2)
-	cloud.Position = center + Vector3.new(0, SKY_HEIGHT, 0)
+	-- 구름 긴 쪽이 상대 진영을 가로지르게
+	local cloudCenter = center + Vector3.new(0, SKY_HEIGHT, 0)
+	cloud.CFrame = CFrame.lookAt(cloudCenter, cloudCenter + direction)
 	cloud.Color = Color3.fromRGB(120, 130, 150)
 	cloud.Transparency = 0.25
 	local mesh = Instance.new("SpecialMesh")
@@ -231,7 +241,6 @@ local function blizzard(context)
 	context.Effects.sound("Wind", cloud)
 
 	local half = Config.BoardSize / 2 - 2
-	local side = context.Placement.side(3 - context.team)
 	local count = Config.Summons.Ice.Count
 	for index = 1, count do
 		task.wait(0.25)
@@ -240,8 +249,9 @@ local function blizzard(context)
 		if king and index % 3 == 0 then
 			target = king.Position
 		else
-			-- 상대 진영 아무 데나
-			target = Vector3.new(context.random:NextNumber(-half, half), Config.BoardHeight, side * context.random:NextNumber(2, half))
+			-- 상대 진영 아무 데나 (판 안으로)
+			local spot = direction * context.random:NextNumber(4, half) + across * context.random:NextNumber(-half / 2, half / 2)
+			target = Vector3.new(math.clamp(spot.X, -half, half), Config.BoardHeight, math.clamp(spot.Z, -half, half))
 		end
 		local start = Vector3.new(target.X, cloud.Position.Y - 4, target.Z)
 		launch(context, "Ice", start, target, 0.8, function(part)
@@ -285,12 +295,12 @@ end
 
 -- 🐦 꽝 : 비둘기가 날아와서 똥만 싸고 간다
 local function pigeon(context)
-	local side = context.Placement.side(3 - context.team)
+	local direction, across = enemyDirection(context)
 	local half = Config.BoardSize / 2
-	local y = Config.BoardHeight + 25
-	local flyer = makeFlyer("🐦", 6, Vector3.new(-half - 10, y, side * 10), context)
+	local middle = Vector3.new(0, Config.BoardHeight + 25, 0) + direction * 10
+	local flyer = makeFlyer("🐦", 6, middle - across * (half + 10), context)
 	context.Effects.sound("Cute", flyer)
-	flyTo(flyer, Vector3.new(half + 10, y, side * 10), 3)
+	flyTo(flyer, middle + across * (half + 10), 3)
 	task.wait(1.4)
 	local targets = enemyPieces(context)
 	local target = if #targets > 0 then targets[context.random:NextInteger(1, #targets)].Position else enemyCenter(context)
@@ -311,6 +321,12 @@ local SUMMONS = {
 }
 
 function Ability.Execute(_piece: BasePart, context)
+	-- 공격할 상대 팀 하나 고르기 (3·4팀이면 남은 팀 중 무작위)
+	local enemies = context.enemyTeams()
+	if #enemies == 0 then
+		return
+	end
+	context.targetTeam = enemies[context.random:NextInteger(1, #enemies)]
 	local entry = Ability.roll(context.random)
 	local run = SUMMONS[entry.Result]
 	if not run then
@@ -320,7 +336,9 @@ function Ability.Execute(_piece: BasePart, context)
 	if entry.Result == "Pigeon" then
 		context.Effects.banner("꽝! 🐦 비둘기가 똥만 싸고 갔어요 💩", Color3.fromRGB(200, 200, 200))
 	else
-		context.Effects.banner(entry.Icon .. " " .. entry.Name .. " 소환!!", Color3.fromRGB(255, 215, 0))
+		local target = Config.Teams[context.targetTeam]
+		local suffix = if context.teamCount > 2 then " → " .. target.Name .. "팀!" else ""
+		context.Effects.banner(entry.Icon .. " " .. entry.Name .. " 소환!!" .. suffix, Color3.fromRGB(255, 215, 0))
 		if entry.Result == "Dragon" then
 			context.Effects.melody("Jackpot")
 		end

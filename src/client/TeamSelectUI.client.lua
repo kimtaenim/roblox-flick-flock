@@ -8,6 +8,7 @@ local Config = require(Shared:WaitForChild("Config"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local PieceTypes = require(Shared:WaitForChild("PieceTypes"))
 local AbilityList = require(Shared:WaitForChild("AbilityList"))
+local TeamLayout = require(Shared:WaitForChild("TeamLayout"))
 
 local player = Players.LocalPlayer
 local state = Remotes.State
@@ -98,6 +99,7 @@ local function describePieces(pieces: { { string } }): string
 	return table.concat(parts, "  ")
 end
 
+local presetCards: { [number]: TextButton } = {}
 for index, preset in Config.PresetTeams do
 	local card = makeButton(presetPage, "", UDim2.new(), UDim2.new())
 	card.LayoutOrder = index
@@ -105,6 +107,7 @@ for index, preset in Config.PresetTeams do
 	card.Activated:Connect(function()
 		Remotes.SelectTeam:FireServer(index)
 	end)
+	presetCards[index] = card
 end
 
 -- 고급 : 직접 조합
@@ -164,7 +167,7 @@ for index, name in rows do
 		refreshCustom()
 	end)
 	plus.Activated:Connect(function()
-		local maxPieces = Config.PiecesPerRow * #Config.RowDistances
+		local maxPieces = TeamLayout.capacity(TeamLayout.pick(Config.Layouts, state:GetAttribute("TeamCount") or 2))
 		if spent() + Config.Prices[name] <= Config.Budget and totalPieces() < maxPieces then
 			counts[name] += 1
 			refreshCustom()
@@ -192,9 +195,39 @@ waitingLabel.Visible = false
 
 gui.Parent = player:WaitForChild("PlayerGui")
 
+-- 모드 고르기 (방장만) : 2팀 / 3팀 / 4팀
+local modePanel = Instance.new("Frame")
+modePanel.AnchorPoint = Vector2.new(0.5, 0.5)
+modePanel.Position = UDim2.fromScale(0.5, 0.55)
+modePanel.Size = UDim2.new(0.8, 0, 0, 220)
+modePanel.BackgroundColor3 = Color3.fromRGB(40, 50, 70)
+modePanel.BackgroundTransparency = 0.15
+modePanel.Visible = false
+modePanel.Parent = gui
+local modeCorner = Instance.new("UICorner")
+modeCorner.CornerRadius = UDim.new(0, 16)
+modeCorner.Parent = modePanel
+local modeLimit = Instance.new("UISizeConstraint")
+modeLimit.MaxSize = Vector2.new(700, 220)
+modeLimit.Parent = modePanel
+makeText(modePanel, "몇 팀으로 할까요? (모자란 자리는 NPC)", UDim2.new(1, 0, 0, 40), UDim2.fromOffset(0, 12), 26)
+local modeTimer = makeText(modePanel, "", UDim2.new(0, 120, 0, 30), UDim2.new(1, -130, 0, 16), 22)
+for count = 2, #Config.Teams do
+	local button = makeButton(
+		modePanel,
+		count .. "팀",
+		UDim2.new(1 / (#Config.Teams - 1), -16, 0, 110),
+		UDim2.new((count - 2) / (#Config.Teams - 1), 8, 0, 80)
+	)
+	button.TextSize = 40
+	button.Activated:Connect(function()
+		Remotes.SelectMode:FireServer(count)
+	end)
+end
+
 -- 내가 지금 골라야 하는 팀 (없으면 nil)
 local function teamToPick(): number?
-	for team = 1, 2 do
+	for team = 1, (state:GetAttribute("TeamCount") or 2) do
 		if state:GetAttribute("Team" .. team .. "Owner") == player.UserId and not state:GetAttribute("Team" .. team .. "Ready") then
 			return team
 		end
@@ -203,18 +236,36 @@ local function teamToPick(): number?
 end
 
 local function refresh()
-	local selecting = state:GetAttribute("Phase") == "TeamSelect"
+	local phase = state:GetAttribute("Phase")
+	local choosingMode = phase == "ModeSelect"
+	local selecting = phase == "TeamSelect"
+	local isHost = state:GetAttribute("HostUserId") == player.UserId
 	local team = if selecting then teamToPick() else nil
-	gui.Enabled = selecting
+	gui.Enabled = selecting or choosingMode
+	modePanel.Visible = choosingMode and isHost
 	panel.Visible = team ~= nil
-	waitingLabel.Visible = selecting and team == nil
+	waitingLabel.Visible = (selecting and team == nil) or (choosingMode and not isHost)
+	waitingLabel.Text = if choosingMode then "방장이 몇 팀으로 할지 고르는 중..." else "상대가 팀을 고르는 중..."
 	if team then
 		title.Text = Config.Teams[team].Name .. " 팀을 골라요!"
 		title.TextColor3 = Config.Teams[team].Color
+		-- 3·4팀은 자리가 좁아서 알이 너무 많은 추천 팀은 못 고른다
+		local capacity = TeamLayout.capacity(TeamLayout.pick(Config.Layouts, state:GetAttribute("TeamCount") or 2))
+		for index, card in presetCards do
+			local fits = #Config.PresetTeams[index].Pieces <= capacity
+			card.Active = fits
+			card.AutoButtonColor = fits
+			card.BackgroundTransparency = if fits then 0 else 0.6
+		end
 	end
 end
 
-for _, name in { "Phase", "Team1Ready", "Team2Ready", "Team1Owner", "Team2Owner" } do
+local watched = { "Phase", "TeamCount", "HostUserId" }
+for watchTeam = 1, #Config.Teams do
+	table.insert(watched, "Team" .. watchTeam .. "Ready")
+	table.insert(watched, "Team" .. watchTeam .. "Owner")
+end
+for _, name in watched do
 	state:GetAttributeChangedSignal(name):Connect(refresh)
 end
 refresh()
@@ -223,5 +274,6 @@ RunService.Heartbeat:Connect(function()
 	if gui.Enabled then
 		local left = math.max(0, (state:GetAttribute("SelectEndsAt") or 0) - workspace:GetServerTimeNow())
 		timerLabel.Text = string.format("%d초", math.ceil(left))
+		modeTimer.Text = timerLabel.Text
 	end
 end)

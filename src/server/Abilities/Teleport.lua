@@ -3,7 +3,7 @@ local Ability = {}
 
 function Ability.Execute(piece: BasePart, context)
 	local radius = context.PieceFactory.radius(piece)
-	local spot = context.Placement.findFreeSpot(0, 0, radius, context.piecesFolder, nil, piece)
+	local spot = context.Placement.findFreeSpot(0, 0, radius, context.piecesFolder, piece)
 	if not spot then
 		return
 	end

@@ -7,6 +7,7 @@
 -- tests/simulate.sh 가 가짜 Color3 를 붙인 사본을 tests/_build/Config.lua 로 만들어 준다.
 local Config = require("./_build/Config")
 local Npc = require("../src/server/Npc")
+local TeamLayout = require("../src/shared/TeamLayout")
 
 local BOARD_HALF = Config.BoardSize / 2
 local GRAVITY = 196.2
@@ -51,18 +52,11 @@ local function makePiece(kind: string, team: number, x: number, z: number)
 	}
 end
 
--- Placement.layoutTeam 과 같은 배치
-local function layoutTeam(team: number, entries, pieces)
-	local side = if team == 1 then 1 else -1
-	table.insert(pieces, makePiece("King", team, 0, side * Config.KingRowDistance))
-	local perRow = Config.PiecesPerRow
-	for index, entry in entries do
-		local row = math.floor((index - 1) / perRow) + 1
-		local rowDistance = Config.RowDistances[math.min(row, #Config.RowDistances)]
-		local inRow = math.min(#entries - (row - 1) * perRow, perRow)
-		local column = (index - 1) % perRow + 1
-		local x = (column - (inRow + 1) / 2) * Config.PieceSpacing
-		table.insert(pieces, makePiece(entry[1], team, x, side * rowDistance))
+-- Placement.layoutTeam 과 같은 배치 (같은 TeamLayout 모듈을 쓴다)
+local function layoutTeam(team: number, teamCount: number, entries, pieces)
+	local layout = TeamLayout.pick(Config.Layouts, teamCount)
+	for _, slot in TeamLayout.slots(team, teamCount, entries, layout) do
+		table.insert(pieces, makePiece(slot.kind, team, slot.x, slot.z))
 	end
 end
 
@@ -180,11 +174,14 @@ local function infoOf(p)
 	}
 end
 
-local function playGame(seed: number, presetRed: number, presetBlue: number)
+-- presets : 팀마다 추천 팀 번호. 돌려주는 것 : 턴 수, 이긴 팀 (0 무승부, -1 안 끝남), 끝난 이유
+local function playGame(seed: number, presets: { number })
 	local rng = makeRandom(seed)
+	local teamCount = #presets
 	local pieces = {}
-	layoutTeam(1, Config.PresetTeams[presetRed].Pieces, pieces)
-	layoutTeam(2, Config.PresetTeams[presetBlue].Pieces, pieces)
+	for team, preset in presets do
+		layoutTeam(team, teamCount, Config.PresetTeams[preset].Pieces, pieces)
+	end
 
 	-- 시작 배치가 겹치거나 판 밖이면 안 된다
 	for i, a in pieces do
@@ -196,7 +193,10 @@ local function playGame(seed: number, presetRed: number, presetBlue: number)
 		end
 	end
 
-	local team = 1
+	local out: { [number]: boolean } = {}
+	-- GameManager 처럼 먼저 치는 팀은 무작위
+	local team = rng:NextInteger(1, teamCount)
+	local lastReason = ""
 	for turn = 1, MAX_TURNS do
 		local shooters, shooterInfos, targets = {}, {}, {}
 		for _, p in pieces do
@@ -204,7 +204,7 @@ local function playGame(seed: number, presetRed: number, presetBlue: number)
 				if p.team == team and (Config.CanFlickKing or p.kind ~= "King") then
 					table.insert(shooters, p)
 					table.insert(shooterInfos, infoOf(p))
-				elseif p.team ~= team then
+				elseif p.team ~= team and not out[p.team] then
 					table.insert(targets, infoOf(p))
 				end
 			end
@@ -234,12 +234,31 @@ local function playGame(seed: number, presetRed: number, presetBlue: number)
 			t += DT
 		until not anyMoving(pieces) or t > Config.MaxMoveTime
 
-		local redLose, blueLose = loseReason(pieces, 1), loseReason(pieces, 2)
-		if redLose or blueLose then
-			local winner = if redLose and blueLose then 0 elseif redLose then 2 else 1
-			return turn, winner, redLose or blueLose
+		-- 진 팀 탈락 (GameManager.knockOut 과 같은 규칙 : 남은 알도 치운다)
+		for checkTeam = 1, teamCount do
+			if not out[checkTeam] then
+				local reason = loseReason(pieces, checkTeam)
+				if reason then
+					out[checkTeam] = true
+					lastReason = reason
+					for _, p in pieces do
+						if p.team == checkTeam then
+							p.alive = false
+						end
+					end
+				end
+			end
 		end
-		team = 3 - team
+		local alive = {}
+		for checkTeam = 1, teamCount do
+			if not out[checkTeam] then
+				table.insert(alive, checkTeam)
+			end
+		end
+		if #alive <= 1 then
+			return turn, alive[1] or 0, lastReason
+		end
+		team = TeamLayout.nextTeam(team, teamCount, out) or alive[1]
 	end
 	return MAX_TURNS, -1, "끝나지 않음"
 end
@@ -248,13 +267,13 @@ local presetCount = #Config.PresetTeams
 local unfinished = 0
 local reasons: { [string]: number } = {}
 local totalGames, totalTurns = 0, 0
-print("추천 팀끼리 NPC 대전 (각 조합 10판)")
+print("2팀 : 추천 팀끼리 NPC 대전 (각 조합 10판, 먼저 치는 팀 무작위)")
 for red = 1, presetCount do
 	local line = {}
 	for blue = 1, presetCount do
 		local redWins = 0
 		for seed = 1, 10 do
-			local turns, winner, reason = playGame(seed * 7919 + red * 31 + blue, red, blue)
+			local turns, winner, reason = playGame(seed * 7919 + red * 31 + blue, { red, blue })
 			totalGames += 1
 			totalTurns += turns
 			reasons[reason :: string] = (reasons[reason :: string] or 0) + 1
@@ -268,8 +287,37 @@ for red = 1, presetCount do
 	end
 	print(string.format("  빨강 %s vs  %s", Config.PresetTeams[red].Name, table.concat(line, " | ")))
 end
-print(string.format("총 %d판, 평균 %.1f턴", totalGames, totalTurns / totalGames))
+print(string.format("  총 %d판, 평균 %.1f턴", totalGames, totalTurns / totalGames))
 for reason, count in reasons do
 	print(string.format("  끝난 이유 %s : %d판", reason, count))
 end
+
+-- 3팀·4팀 : 추천 팀 무작위, 자리(순서)별 승리 수
+for teamCount = 3, 4 do
+	local games, turnsSum = 100, 0
+	local wins: { [number]: number } = {}
+	local draws = 0
+	for seed = 1, games do
+		local rng = makeRandom(seed * 104729 + teamCount)
+		local presets = {}
+		for team = 1, teamCount do
+			presets[team] = rng:NextInteger(1, presetCount)
+		end
+		local turns, winner = playGame(seed * 7 + teamCount * 1000, presets)
+		turnsSum += turns
+		if winner == -1 then
+			unfinished += 1
+		elseif winner == 0 then
+			draws += 1
+		else
+			wins[winner] = (wins[winner] or 0) + 1
+		end
+	end
+	local line = {}
+	for team = 1, teamCount do
+		table.insert(line, string.format("%s %d승", Config.Teams[team].Name, wins[team] or 0))
+	end
+	print(string.format("%d팀 : %d판, 평균 %.1f턴, 무승부 %d | %s", teamCount, games, turnsSum / games, draws, table.concat(line, " · ")))
+end
+
 print(if unfinished == 0 then "모든 판이 승패로 끝남" else ("끝나지 않은 판: " .. unfinished))

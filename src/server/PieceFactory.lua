@@ -3,6 +3,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local AbilityList = require(Shared:WaitForChild("AbilityList"))
+local TeamLayout = require(Shared:WaitForChild("TeamLayout"))
+local Remotes = require(Shared:WaitForChild("Remotes"))
 
 local PieceFactory = {}
 
@@ -96,6 +98,14 @@ local function makeDecoration(name: string, size: Vector3, color: Color3, cframe
 	weld.Parent = part
 end
 
+-- 알이 보는 방향 (판 가운데 쪽)
+function PieceFactory.forward(piece: BasePart): Vector3
+	local team = (piece:GetAttribute("Team") :: number?) or 1
+	local teamCount = (Remotes.State:GetAttribute("TeamCount") :: number?) or 2
+	local x, z = TeamLayout.direction(team, teamCount)
+	return Vector3.new(-x, 0, -z)
+end
+
 -- 눈·왕관 붙이기 (새알 콘셉트). 크기가 바뀌면 다시 붙인다.
 function PieceFactory.decorate(piece: BasePart)
 	local old = piece:FindFirstChild("Look")
@@ -105,9 +115,9 @@ function PieceFactory.decorate(piece: BasePart)
 	local folder = Instance.new("Folder")
 	folder.Name = "Look"
 
-	local team = piece:GetAttribute("Team")
-	local forward = Vector3.new(0, 0, if team == 1 then -1 else 1) -- 상대 진영 쪽
-	local side = Vector3.new(1, 0, 0)
+	-- 판 가운데 쪽을 본다
+	local forward = PieceFactory.forward(piece)
+	local side = Vector3.new(-forward.Z, 0, forward.X)
 	local up = Vector3.yAxis
 	local radius = PieceFactory.radius(piece)
 	local center = piece.Position

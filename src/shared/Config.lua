@@ -32,15 +32,22 @@ Config.DamageScale = 0.6 -- damage = 충돌 속도 × 때린 알 질량 × Damag
 Config.DamageMinSpeed = 4 -- 이보다 느리게 부딪히면 데미지 없음
 Config.DamageCooldown = 0.3 -- 같은 알이 연달아 때릴 때 간격 (초)
 
--- 팀 진영 : 빨강은 +Z, 파랑은 -Z
+-- 팀 : 2~4팀. 팀들은 판 가운데를 빙 둘러 앉고, 차례도 빙 돌아간다.
+-- 2팀 = 빨강 앞(+Z)·파랑 뒤 / 4팀 = 네 변 / 3팀 = 120도 간격
 Config.Teams = {
 	{ Name = "빨강", Color = Color3.fromRGB(226, 70, 70) },
 	{ Name = "파랑", Color = Color3.fromRGB(64, 120, 230) },
+	{ Name = "초록", Color = Color3.fromRGB(70, 190, 90) },
+	{ Name = "노랑", Color = Color3.fromRGB(240, 200, 40) },
 }
-Config.KingRowDistance = 22 -- 판 가운데에서 왕알까지
-Config.RowDistances = { 9, 14 } -- 판 가운데에서 알 줄까지 (앞줄, 뒷줄)
-Config.PieceSpacing = 6 -- 한 줄 안 알 사이 간격
-Config.PiecesPerRow = 7
+Config.DefaultTeamCount = 2 -- 방장이 안 고르면
+Config.ModeSelectTime = 20 -- 방장이 모드(2·3·4팀) 고르는 시간 (초)
+-- 팀 배치 : 판 가운데에서 왕알·알 줄까지 거리, 한 줄에 몇 개, 간격
+-- 3·4팀은 옆 팀과 안 겹치게 더 뒤로, 좁게 앉는다
+Config.Layouts = {
+	Two = { KingDistance = 22, Rows = { 9, 14 }, PerRow = 7, Spacing = 6 },
+	Many = { KingDistance = 26, Rows = { 14, 19 }, PerRow = 4, Spacing = 5 },
+}
 
 -- 팀 선택 (예산제)
 Config.Budget = 12

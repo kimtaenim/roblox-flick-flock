@@ -4,9 +4,10 @@ local RunService = game:GetService("RunService")
 
 -- Flick : 클라 → 서버 (알, 방향, 세기)
 -- UseAbility : 클라 → 서버 (능력 알)
+-- SelectMode : 클라 → 서버 (팀 수 2·3·4, 방장만)
 -- SelectTeam : 클라 → 서버 (추천 팀 번호 또는 { Flat = n, Round = n, Half = n, Ability = n })
 -- Effect : 서버 → 클라 (종류, 값...) 화면 흔들기·큰 글씨
-local EVENT_NAMES = { "Flick", "UseAbility", "SelectTeam", "Effect" }
+local EVENT_NAMES = { "Flick", "UseAbility", "SelectMode", "SelectTeam", "Effect" }
 
 local Remotes = {}
 
@@ -22,23 +23,29 @@ if RunService:IsServer() then
 	folder.Parent = ReplicatedStorage
 
 	-- 게임 상태는 이 폴더의 Attribute 로 모두에게 보인다
-	-- Phase : Waiting / TeamSelect / Aiming / Moving / GameOver
-	-- CurrentTeam : 1 또는 2
-	-- Winner : 0 없음, 1·2 이긴 팀, -1 무승부
+	-- Phase : Waiting / ModeSelect / TeamSelect / Aiming / Moving / GameOver
+	-- TeamCount : 이번 판 팀 수 (2~4)
+	-- HostUserId : 모드를 고르는 방장
+	-- CurrentTeam : 지금 차례 팀 번호
+	-- Winner : 0 없음, 팀 번호 = 이긴 팀, -1 무승부
 	-- WinReason : 이긴 이유 글
-	-- Team1Owner / Team2Owner : 조종하는 플레이어 UserId (-1 = NPC)
-	-- Team1Ready / Team2Ready : 팀 고르기 끝났는지
-	-- SelectEndsAt : 팀 고르기 마감 시각 (workspace:GetServerTimeNow 기준)
+	-- Team{n}Owner : 조종하는 플레이어 UserId (-1 = NPC, 0 = 없음)
+	-- Team{n}Ready : 팀 고르기 끝났는지
+	-- Team{n}Out : 탈락했는지
+	-- SelectEndsAt : 고르기 마감 시각 (workspace:GetServerTimeNow 기준)
 	local state = Instance.new("Folder")
 	state.Name = "GameState"
 	state:SetAttribute("Phase", "Waiting")
+	state:SetAttribute("TeamCount", 2)
+	state:SetAttribute("HostUserId", 0)
 	state:SetAttribute("CurrentTeam", 1)
 	state:SetAttribute("Winner", 0)
 	state:SetAttribute("WinReason", "")
-	state:SetAttribute("Team1Owner", 0)
-	state:SetAttribute("Team2Owner", 0)
-	state:SetAttribute("Team1Ready", false)
-	state:SetAttribute("Team2Ready", false)
+	for team = 1, 4 do
+		state:SetAttribute("Team" .. team .. "Owner", 0)
+		state:SetAttribute("Team" .. team .. "Ready", false)
+		state:SetAttribute("Team" .. team .. "Out", false)
+	end
 	state:SetAttribute("SelectEndsAt", 0)
 	state.Parent = ReplicatedStorage
 	Remotes.State = state

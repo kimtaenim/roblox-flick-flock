@@ -50,12 +50,12 @@ local function buildPoop(piece: BasePart, context)
 	end
 
 	-- 눈 (상대 쪽을 본다)
-	local team = piece:GetAttribute("Team")
-	local forward = Vector3.new(0, 0, if team == 1 then -1 else 1)
+	local forward = context.PieceFactory.forward(piece)
+	local side = Vector3.new(-forward.Z, 0, forward.X)
 	local eyeY = bottom + radius * 1.45
 	local eyeSize = radius * 0.4
 	for _, sign in { -1, 1 } do
-		local eye = Vector3.new(x + sign * radius * 0.32, eyeY, z) + forward * radius * 0.78
+		local eye = Vector3.new(x, eyeY, z) + side * sign * radius * 0.32 + forward * radius * 0.78
 		makeBall("Eye", eyeSize, Color3.new(1, 1, 1), eye, piece, folder)
 		makeBall("Pupil", eyeSize * 0.5, Color3.new(0.05, 0.05, 0.05), eye + forward * eyeSize * 0.3, piece, folder)
 	end

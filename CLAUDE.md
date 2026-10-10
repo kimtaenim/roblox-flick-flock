@@ -16,7 +16,7 @@
 - 2인 테스트: Test → Clients and Servers → 2 Players. 혼자 Play 하면 파랑은 NPC (`Config.SoloMode`).
 
 ## 테스트 (Studio 없이)
-- `sh tests/simulate.sh` : 진짜 Config 숫자로 추천 팀끼리 NPC 대전 160판 (튕기기만, 능력 제외). 시작 배치 겹침, 승패가 나는지, 팀별 승률 출력.
+- `sh tests/simulate.sh` : 진짜 Config 숫자로 NPC 대전 (튕기기만, 능력 제외). 2팀 추천 팀 조합 160판 + 3팀·4팀 각 100판. 시작 배치 겹침, 승패가 나는지, 팀·자리별 승리 수 출력.
 - 타입 검사: `rojo sourcemap -o sourcemap.json` 후 `luau-lsp analyze --definitions=@roblox=globalTypes.d.luau --sourcemap=sourcemap.json src`
 
 ## 코드 위치
@@ -34,12 +34,13 @@
 | `src/server/Abilities/*.lua` | 능력 8개 (`Execute(piece, context)` + `OnTurnEnd(piece)`) |
 | `src/client/FlickInput.client.lua` | 자유 카메라(Studio 식)·흔들림, 드래그 조준, 발사 요청 |
 | `src/client/AbilityUI.client.lua` | 능력 버튼 |
-| `src/client/TeamSelectUI.client.lua` | 추천 팀 / 고급 예산 조합 |
+| `src/client/TeamSelectUI.client.lua` | 모드(2·3·4팀) 고르기, 추천 팀 / 고급 예산 조합 |
 | `src/client/TurnUI.client.lua` | 차례·알 개수·왕알 HP, 배너 |
 | `src/client/TutorialUI.client.lua` | 튜토리얼 (? 버튼) |
 | `src/shared/Config.lua` | 모든 숫자 |
 | `src/shared/AbilityList.lua` | 능력 이름·아이콘 (이름은 아들과 결정) |
 | `src/shared/Remotes.lua` | RemoteEvent + GameState(Attribute) |
+| `src/shared/TeamLayout.lua` | 2~4팀 자리·방향·다음 차례 계산 (숫자만, 테스트 가능) |
 
 ## 진행 상황
 - [x] 1단계: 판 + 납작 알 + 드래그 튕기기 + 턴 교대 + 판 밖 탈락
@@ -49,6 +50,7 @@
 - [x] 4단계: 소환·분신·자석·똥알·유령 + 연출
 - [x] 5단계: 팀 선택 UI (추천 팀 4개 + 고급)
 - [x] 6단계: 알 디자인(눈·왕관, 임시), 소리, 튜토리얼
+- [x] 3·4팀 대결 (방장이 모드 선택, 모자란 자리는 NPC, 탈락제)
 - [ ] Studio 실제 플레이 테스트 후 고칠 것 정리 (물리 느낌, 소리 파일 존재 여부, UI 크기)
 
 ## 설계서에서 정한 해석

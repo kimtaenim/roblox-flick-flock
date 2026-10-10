@@ -121,6 +121,8 @@ local function refresh()
 	helpLabel.Text = ""
 	if phase == "Waiting" then
 		turnLabel.Text = "친구를 기다리는 중..."
+	elseif phase == "ModeSelect" then
+		turnLabel.Text = "몇 팀으로 할까요?"
 	elseif phase == "TeamSelect" then
 		turnLabel.Text = "팀 고르기"
 	elseif phase == "Aiming" then
@@ -148,20 +150,26 @@ local function refresh()
 		helpLabel.Text = (state:GetAttribute("WinReason") or "") .. "  곧 새 판이 시작돼요"
 	end
 
-	local red, redHp = countPieces(1)
-	local blue, blueHp = countPieces(2)
-	scoreLabel.Text = string.format(
-		"%s 알 %d · 👑%d   vs   %s 알 %d · 👑%d",
-		Config.Teams[1].Name,
-		red,
-		math.ceil(redHp),
-		Config.Teams[2].Name,
-		blue,
-		math.ceil(blueHp)
-	)
+	-- 팀마다 "빨강 알5 👑150" (탈락한 팀은 ✖)
+	local parts = {}
+	for scoreTeam = 1, (state:GetAttribute("TeamCount") or 2) do
+		local name = Config.Teams[scoreTeam].Name
+		if state:GetAttribute("Team" .. scoreTeam .. "Out") and phase ~= "TeamSelect" and phase ~= "ModeSelect" then
+			table.insert(parts, name .. " ✖")
+		else
+			local soldiers, kingHp = countPieces(scoreTeam)
+			table.insert(parts, string.format("%s 알%d 👑%d", name, soldiers, math.ceil(kingHp)))
+		end
+	end
+	scoreLabel.Text = table.concat(parts, "   |   ")
 end
 
-for _, name in { "Phase", "CurrentTeam", "Winner", "Team1Owner", "Team2Owner" } do
+local watched = { "Phase", "CurrentTeam", "Winner", "TeamCount" }
+for team = 1, #Config.Teams do
+	table.insert(watched, "Team" .. team .. "Owner")
+	table.insert(watched, "Team" .. team .. "Out")
+end
+for _, name in watched do
 	state:GetAttributeChangedSignal(name):Connect(refresh)
 end
 
