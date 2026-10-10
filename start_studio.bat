@@ -44,13 +44,20 @@ if errorlevel 1 (
 )
 
 if not exist "%REPO%\.git" (
-    echo [1/4] Cloning repo into %REPO% ...
-    git clone -b %BRANCH% "%REPO_URL%" "%REPO%"
+    echo [1/4] Setting up repo in %REPO% ...
+    if not exist "%REPO%" mkdir "%REPO%"
+    cd /d "%REPO%"
+    git init -q
+    git remote remove origin >nul 2>nul
+    git remote add origin "%REPO_URL%"
+    git fetch origin %BRANCH%
     if errorlevel 1 (
-        echo [ERROR] git clone failed.
+        echo [ERROR] git fetch failed. Check internet / GitHub login.
         pause
         exit /b 1
     )
+    git checkout -f -B %BRANCH% origin/%BRANCH%
+    git branch -u origin/%BRANCH% >nul
 )
 
 cd /d "%REPO%"
