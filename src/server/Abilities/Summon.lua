@@ -48,6 +48,7 @@ function Ability.Execute(_piece: BasePart, context)
 		context.Effects.banner("대박!! " .. AbilityList.get(ability).Icon .. " " .. AbilityList.get(ability).Name .. " 알!", Color3.fromRGB(255, 215, 0))
 		context.Effects.sparkle(newPiece.Position, Color3.fromRGB(255, 215, 0), 80)
 		context.Remotes.Effect:FireAllClients("Shake", Config.ShakeStrength * 0.6)
+		context.Effects.melody("Jackpot", newPiece)
 	else
 		context.Effects.banner(entry.Name .. "! " .. (if kind == "Half" then "0.5 알" elseif kind == "Flat" then "납작 알" else "둥근 알"), color)
 		context.Effects.sparkle(newPiece.Position, color, 25)

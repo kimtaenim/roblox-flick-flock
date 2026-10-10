@@ -11,23 +11,44 @@ local effectsFolder = Instance.new("Folder")
 effectsFolder.Name = "Effects"
 effectsFolder.Parent = workspace
 
--- 소리 : where 는 소리가 날 파트 (없으면 판 가운데)
-function Effects.sound(name: string, where: BasePart?)
-	local soundId = Config.Sounds[name]
-	if not soundId then
+-- 소리 : where 는 소리가 날 파트 (없으면 판 가운데). pitchScale 은 음 높이 배율.
+function Effects.sound(name: string, where: BasePart?, pitchScale: number?)
+	local info = Config.Sounds[name]
+	if not info then
 		return
 	end
 	local holder = where or workspace:FindFirstChild("Board")
 	if not holder then
 		return
 	end
+	local low, high = info.Pitch[1], info.Pitch[2]
 	local sound = Instance.new("Sound")
-	sound.SoundId = soundId
-	sound.Volume = Config.SoundVolume
-	sound.RollOffMaxDistance = 300
+	sound.SoundId = info.Id
+	sound.Volume = Config.SoundVolume * (info.Volume or 1)
+	sound.PlaybackSpeed = (low + (high - low) * math.random()) * (pitchScale or 1)
+	sound.RollOffMaxDistance = 400
 	sound.Parent = holder
 	sound:Play()
-	Debris:AddItem(sound, 4)
+	Debris:AddItem(sound, 6)
+end
+
+-- 멜로디 : Config.Melodies 의 음들을 차례로
+function Effects.melody(name: string, where: BasePart?)
+	local melody = Config.Melodies[name]
+	if not melody then
+		return
+	end
+	local base = Config.Sounds[melody.Sound]
+	if not base then
+		return
+	end
+	task.spawn(function()
+		local middle = (base.Pitch[1] + base.Pitch[2]) / 2
+		for _, pitch in melody.Pitches do
+			Effects.sound(melody.Sound, where, pitch / middle)
+			task.wait(melody.Gap)
+		end
+	end)
 end
 
 -- 반짝이 터뜨리기

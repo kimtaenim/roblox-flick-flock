@@ -143,9 +143,7 @@ local function countSoldiers(team: number): number
 end
 
 local function watchPiece(piece: BasePart)
-	if piece:GetAttribute("Kind") == "King" then
-		Damage.watchKing(piece)
-	end
+	Damage.watchPiece(piece)
 end
 
 ---------------------------------------------------------------- 매 프레임 물리
@@ -158,6 +156,7 @@ RunService.Heartbeat:Connect(function(dt)
 	-- 판 밖으로 나간 알은 바로 탈락
 	for _, removed in Elimination.removeOutPieces(piecesFolder) do
 		Effects.sound("Out")
+		Effects.sound("OutCry", nil, if removed.kind == "King" then 0.5 elseif removed.kind == "Half" then 1.3 else 1)
 		Effects.sparkle(removed.position, Config.Teams[removed.team].Color, 20)
 	end
 
@@ -201,7 +200,7 @@ RunService.Heartbeat:Connect(function(dt)
 					if not stepped[other] then
 						stepped[other] = true
 						other.AssemblyLinearVelocity *= Config.PoopSlowFactor
-						Effects.sound("Poop", poop)
+						Effects.sound("PoopStep", poop)
 					end
 					local now = os.clock()
 					if other.AssemblyLinearVelocity.Magnitude > 1 and now - (lastFootprint[other] or 0) > 0.15 then
@@ -298,7 +297,7 @@ local function useAbility(piece: BasePart, team: number)
 	-- 능력 알은 1회 사용
 	piece:SetAttribute("Ability", nil)
 	PieceFactory.refreshAbilityTag(piece)
-	Effects.sound("Ability", piece)
+	Effects.sound(if Config.Sounds[ability.Id] then ability.Id else "Ability", piece)
 	Effects.banner(Config.Teams[team].Name .. " : " .. ability.Icon .. " " .. ability.Name .. "!", Config.Teams[team].Color)
 	Abilities[ability.Id].Execute(piece, makeContext(team))
 end
@@ -615,6 +614,7 @@ local function playRound()
 	while true do
 		state:SetAttribute("Phase", "Aiming")
 		local team = state:GetAttribute("CurrentTeam")
+		Effects.sound("TurnStart")
 		if teamOwners[team] == "Npc" then
 			task.spawn(playNpcTurn, team)
 		end
@@ -636,6 +636,7 @@ local function playRound()
 			local king = kingOf(checkTeam)
 			if king and (king:GetAttribute("Hp") or 0) <= 0 then
 				Effects.explosion(king.Position)
+				Effects.sound("KingDown")
 				king:Destroy()
 			end
 		end
@@ -646,6 +647,7 @@ local function playRound()
 			state:SetAttribute("Winner", winner)
 			state:SetAttribute("WinReason", if winner == -1 then "둘 다 쓰러졌어요" elseif winner == 1 then blueLose else redLose)
 			state:SetAttribute("Phase", "GameOver")
+			Effects.melody(if winner == -1 then "Draw" else "Win")
 			task.wait(Config.RestartDelay)
 			return
 		end

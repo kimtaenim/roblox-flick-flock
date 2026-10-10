@@ -90,7 +90,7 @@ Config.GiantScale = 2 -- 거대화 배율 (크기·질량)
 Config.MagnetElasticity = 1 -- 자석 알에 부딪히면 되튕기는 정도
 Config.PoopSlowFactor = 0.35 -- 똥을 밟으면 속도가 이만큼으로 줄어듦
 Config.FootprintTime = 4 -- 똥 발자국이 남는 시간 (초)
-Config.EffectTurns = 2 -- 자석·똥·유령이 유지되는 턴 수 (내 턴 + 상대 턴)
+Config.EffectTurns = 2 -- 자석·똥·유령 유지 : 2 = 능력 쓴 내 턴이 끝나고 상대 턴 한 번 동안
 -- 소환 확률 (합이 100)
 Config.SummonTable = {
 	{ Name = "꽝", Chance = 60, Result = "Half" },
@@ -114,14 +114,46 @@ Config.CameraHeight = 54
 Config.CameraBack = 44
 Config.ShakeStrength = 1.2 -- 폭발 때 화면 흔들림
 
--- 소리 (rbxasset:// 또는 rbxassetid://숫자 로 바꿔도 됨)
+-- 소리 : 로블록스에 기본으로 들어 있는 소리를 음 높이(Pitch)를 바꿔 여러 가지로 쓴다.
+-- Pitch 1 = 원래 소리, 0.5 = 굵고 느리게, 2 = 다람쥐처럼 빠르게. { 최소, 최대 } 사이에서 무작위.
+-- 다른 소리를 쓰고 싶으면 Id 를 "rbxassetid://숫자" 로 바꾸면 된다.
+local OOF = "rbxasset://sounds/uuhhh.mp3" -- "웁!"
+local JUMP = "rbxasset://sounds/action_jump.mp3" -- 뿅
+local LAND = "rbxasset://sounds/action_jump_land.mp3" -- 쿵
+local FALL = "rbxasset://sounds/action_falling.ogg" -- 휘이잉
+local SPLASH = "rbxasset://sounds/impact_water.mp3" -- 첨벙
+local SWIM = "rbxasset://sounds/action_swim.mp3" -- 슈욱
+local STEP = "rbxasset://sounds/action_footsteps_plastic.mp3" -- 톡톡
+local GETUP = "rbxasset://sounds/action_get_up.mp3" -- 으쌰
+
+Config.SoundVolume = 0.7
 Config.Sounds = {
-	Flick = "rbxasset://sounds/swoosh.wav",
-	Hit = "rbxasset://sounds/collide.wav",
-	Out = "rbxasset://sounds/action_falling.mp3",
-	Ability = "rbxasset://sounds/electronicpingshort.wav",
-	Poop = "rbxasset://sounds/splat.wav",
+	Flick = { Id = JUMP, Pitch = { 0.9, 1.3 } }, -- 튕길 때
+	Hit = { Id = LAND, Pitch = { 0.9, 1.2 } }, -- 알끼리 부딪힐 때 (작은 알일수록 높은 소리)
+	KingHit = { Id = OOF, Pitch = { 0.85, 1.15 } }, -- 왕알이 맞을 때
+	KingDown = { Id = OOF, Pitch = { 0.45, 0.5 }, Volume = 1 }, -- 왕알이 쓰러질 때
+	Out = { Id = FALL, Pitch = { 1, 1.3 } }, -- 판 밖으로 떨어질 때
+	OutCry = { Id = OOF, Pitch = { 1.7, 2.1 } }, -- 떨어지면서 지르는 소리
+	TurnStart = { Id = STEP, Pitch = { 1.6, 1.6 }, Volume = 0.5 }, -- 내 차례
+	Ability = { Id = SWIM, Pitch = { 1.5, 1.7 } }, -- 능력 공통
+	Explosion = { Id = LAND, Pitch = { 0.3, 0.35 }, Volume = 1 },
+	Giant = { Id = GETUP, Pitch = { 0.4, 0.45 }, Volume = 1 },
+	Teleport = { Id = SWIM, Pitch = { 2.2, 2.4 } },
+	Ghost = { Id = SWIM, Pitch = { 0.5, 0.55 } },
+	Magnet = { Id = STEP, Pitch = { 0.4, 0.5 }, Volume = 1 },
+	Poop = { Id = SPLASH, Pitch = { 0.5, 0.55 }, Volume = 1 }, -- 뿌직
+	PoopStep = { Id = SPLASH, Pitch = { 0.75, 0.9 } }, -- 똥 밟음
+	Summon = { Id = JUMP, Pitch = { 1.6, 1.7 } },
+	Clone = { Id = JUMP, Pitch = { 1.9, 2.1 } },
 }
-Config.SoundVolume = 0.6
+-- 여러 음을 이어서 (멜로디). Pitches 순서대로 Gap 초 간격.
+Config.Melodies = {
+	Win = { Sound = "Flick", Pitches = { 1, 1.26, 1.5, 2 }, Gap = 0.15 },
+	Jackpot = { Sound = "Flick", Pitches = { 1.5, 1.9, 2.25, 3 }, Gap = 0.08 },
+	Draw = { Sound = "KingHit", Pitches = { 1, 0.8 }, Gap = 0.35 },
+	Clone = { Sound = "Clone", Pitches = { 1.8, 2.2 }, Gap = 0.12 },
+}
+Config.HitSoundMinSpeed = 6 -- 이보다 느리게 부딪히면 소리 안 남
+Config.HitSoundCooldown = 0.12 -- 같은 알 소리 간격 (초)
 
 return Config

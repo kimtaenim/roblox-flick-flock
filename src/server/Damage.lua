@@ -40,35 +40,51 @@ function Damage.apply(king: BasePart, amount: number, minHp: number?)
 	end
 end
 
-local function onKingTouched(king: BasePart, other: BasePart)
-	if not piecesFolder or other.Parent ~= piecesFolder or other == king then
+local lastSoundTime: { [BasePart]: number } = {}
+
+local function onPieceTouched(piece: BasePart, other: BasePart)
+	if not piecesFolder or other.Parent ~= piecesFolder or other == piece then
 		return
 	end
+	local pieceVelocity = lastVelocity[piece] or piece.AssemblyLinearVelocity
+	local otherVelocity = lastVelocity[other] or other.AssemblyLinearVelocity
+	local relativeSpeed = (otherVelocity - pieceVelocity).Magnitude
 	local now = os.clock()
-	local hits = lastHitTime[king]
+
+	-- 부딪히는 소리 : 더 빨랐던 알 쪽에서 한 번만. 작은 알일수록 높은 소리.
+	if
+		relativeSpeed >= Config.HitSoundMinSpeed
+		and pieceVelocity.Magnitude >= otherVelocity.Magnitude
+		and now - (lastSoundTime[piece] or 0) > Config.HitSoundCooldown
+	then
+		lastSoundTime[piece] = now
+		Effects.sound("Hit", piece, 1 / math.max(PieceFactory.radius(piece) / 2, 0.25))
+	end
+
+	-- 왕알이면 데미지
+	if piece:GetAttribute("Kind") ~= "King" then
+		return
+	end
+	local hits = lastHitTime[piece]
 	if not hits then
 		hits = {}
-		lastHitTime[king] = hits
+		lastHitTime[piece] = hits
 	end
 	if hits[other] and now - hits[other] < Config.DamageCooldown then
 		return
 	end
-
-	local kingVelocity = lastVelocity[king] or king.AssemblyLinearVelocity
-	local otherVelocity = lastVelocity[other] or other.AssemblyLinearVelocity
-	local relativeSpeed = (otherVelocity - kingVelocity).Magnitude
 	local amount = Damage.formula(relativeSpeed, PieceFactory.massFactor(other))
 	if amount > 0 then
 		hits[other] = now
-		Damage.apply(king, amount)
-		Effects.sound("Hit", king)
+		Damage.apply(piece, amount)
+		Effects.sound("KingHit", piece)
 	end
 end
 
--- 왕알이 생길 때 불러 준다
-function Damage.watchKing(king: BasePart)
-	king.Touched:Connect(function(other)
-		onKingTouched(king, other)
+-- 알이 생길 때 불러 준다 (부딪히는 소리 + 왕알 데미지)
+function Damage.watchPiece(piece: BasePart)
+	piece.Touched:Connect(function(other)
+		onPieceTouched(piece, other)
 	end)
 end
 
@@ -85,6 +101,7 @@ function Damage.start(folder: Folder)
 	folder.ChildRemoved:Connect(function(child)
 		if child:IsA("BasePart") then
 			lastHitTime[child] = nil
+			lastSoundTime[child] = nil
 		end
 	end)
 end
