@@ -137,6 +137,9 @@ end
 -- event : "Start" "Flick" "Hit" "LowHp" "Out" "Win"
 -- force 면 확률·쉬는 시간 무시
 function Speech.say(piece: BasePart, event: string, force: boolean?)
+	if not Config.ShowSpeech then
+		return
+	end
 	local now = os.clock()
 	if not force then
 		if math.random() > (Config.SpeechChance[event] or 0) then
@@ -163,6 +166,9 @@ end
 
 -- 능력 쓸 때 외치기
 function Speech.sayAbility(piece: BasePart, abilityId: string)
+	if not Config.ShowSpeech then
+		return
+	end
 	local text = pick(Config.Lines.Ability[abilityId])
 	if not text then
 		return

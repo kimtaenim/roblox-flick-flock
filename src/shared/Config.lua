@@ -343,6 +343,7 @@ Config.Characters = {
 	Small = { "삐약이", "콩알이", "쪼꼬", "방울이", "뽀짝이", "꼬물이", "몽글이", "도토리" },
 }
 Config.SpeechChance = { Start = 1, Flick = 0.6, Taunt = 1, Brag = 0.7, Hit = 0.5, LowHp = 1, Out = 1, Win = 1, Ability = 1 } -- 대사할 확률
+Config.ShowSpeech = false -- 말풍선 대사를 보여 줄지 (화면을 가려서 꺼 둠. true 면 다시 나옴)
 Config.SpeechTime = 2.2 -- 말풍선이 떠 있는 시간 (초)
 Config.SpeechCooldown = 1.5 -- 같은 알이 다시 말하기까지 (초)
 Config.TauntAngle = 20 -- 상대 왕알 쪽으로 이 각도(도) 안으로 치면 허세 대사
