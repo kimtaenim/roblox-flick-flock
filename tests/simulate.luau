@@ -13,6 +13,9 @@ local BoardShape = require("../src/shared/BoardShape")
 -- 지금 판 모양 (playGame 이 팀 수에 맞게 바꾼다)
 -- 지금 판 설정 (playGame 이 판 크기·바닥·팀 수에 맞게 바꾼다)
 local setup = BoardShape.makeSetup(Config, "Normal", "Wood", 2)
+-- 울퉁불퉁 바닥의 혹 (움직이지 않는 동그라미 장애물) { x, z, r }
+local bumps: { { x: number, z: number, r: number } } = {}
+BUMP_TOTAL, BUMP_BOARDS = 0, 0
 local GRAVITY = 196.2
 local DT = 1 / 240
 local MAX_TURNS = 300
@@ -121,6 +124,27 @@ local function step(pieces)
 			end
 		end
 	end
+	-- 혹에 부딪히면 튕겨 나온다 (혹은 안 움직임)
+	for _, bump in bumps do
+		for _, p in pieces do
+			if p.alive then
+				local dx, dz = p.x - bump.x, p.z - bump.z
+				local dist = math.sqrt(dx * dx + dz * dz)
+				local minDist = p.radius + bump.r
+				if dist < minDist and dist > 1e-6 then
+					local nx, nz = dx / dist, dz / dist
+					local into = p.vx * nx + p.vz * nz
+					if into < 0 then
+						local bounce = (p.bounce + 0.3) / 2
+						p.vx -= (1 + bounce) * into * nx
+						p.vz -= (1 + bounce) * into * nz
+					end
+					p.x = bump.x + nx * minDist
+					p.z = bump.z + nz * minDist
+				end
+			end
+		end
+	end
 	-- 판 밖 탈락 (Elimination.lua 와 같은 규칙)
 	for _, p in pieces do
 		if p.alive and not BoardShape.inside(setup.shape, p.x, p.z) then
@@ -172,6 +196,25 @@ local function playGame(seed: number, presets: { number }, sizeKey: string?, flo
 	for team, preset in presets do
 		-- GameManager.copyPreset 처럼 판 크기에 맞게 늘이거나 줄인 추천 팀
 		layoutTeam(team, teamCount, BoardShape.adaptPreset(Config, setup, Config.PresetTeams[preset].Pieces), pieces)
+	end
+
+	-- 울퉁불퉁이면 Board.addBumps 처럼 알 사이 빈 자리에 혹
+	table.clear(bumps)
+	local floor = Config.Floors[setup.floorKey]
+	if floor.BumpCount then
+		local occupied = {}
+		for _, p in pieces do
+			table.insert(occupied, { p.x, p.z, p.radius })
+		end
+		local bumpRng = makeRandom(seed + 99)
+		local footprint = BoardShape.bumpFootprint(floor.BumpRadius, floor.BumpHeight)
+		for _, spot in BoardShape.bumpSpots(setup.shape, floor.BumpCount, floor.BumpRadius, occupied, function(low, high)
+			return bumpRng:NextNumber(low, high)
+		end) do
+			table.insert(bumps, { x = spot.x, z = spot.z, r = footprint })
+		end
+		BUMP_TOTAL += #bumps
+		BUMP_BOARDS += 1
 	end
 
 	-- 시작 배치가 겹치거나 판 밖이면 안 된다
@@ -321,7 +364,7 @@ end
 -- 판 종류마다 : 크기·모양 × 바닥 × 팀 수 (시작 배치가 판 위에 있고 겹치지 않는지, 판이 끝나는지)
 print("판 종류별 (각 20판, 추천 팀 무작위)")
 local sizeKeys = { "Normal", "Small", "Large", "Gourd", "Bear" }
-local floorKeys = { "Wood", "Ice", "Volcano", "Chess", "Janggi", "Baduk" }
+local floorKeys = { "Wood", "Ice", "Volcano", "Bumpy", "Chess", "Janggi", "Baduk" }
 for _, sizeKey in sizeKeys do
 	for teamCount = 2, 4 do
 		if BoardShape.allowed(Config, sizeKey, teamCount) then
@@ -358,6 +401,10 @@ for _, sizeKey in sizeKeys do
 				table.insert(counts, tostring(#BoardShape.adaptPreset(Config, countSetup, preset.Pieces)))
 			end
 			print(string.format("  %s %d팀 [알 %s] : %s", Config.BoardSizes[sizeKey].Name, teamCount, table.concat(counts, "/"), table.concat(line, " · ")))
+			if BUMP_BOARDS > 0 then
+				print(string.format("      울퉁불퉁 혹 : 평균 %.1f개 놓임 (목표 %d개)", BUMP_TOTAL / BUMP_BOARDS, Config.Floors.Bumpy.BumpCount))
+				BUMP_TOTAL, BUMP_BOARDS = 0, 0
+			end
 		end
 	end
 end

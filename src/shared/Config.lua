@@ -32,11 +32,11 @@ Config.BoardSizes = {
 	Large = {
 		Name = "큰 판",
 		Order = 3,
-		Size = 84,
+		Size = 74,
 		Shape = "Auto",
-		Budget = 18,
-		Two = { KingDistance = 32, Rows = { 12, 18 }, PerRow = 9, Spacing = 6 },
-		Many = { KingDistance = 35, Rows = { 18, 23, 28 }, PerRow = 4, Spacing = 5.5 },
+		Budget = 15,
+		Two = { KingDistance = 27, Rows = { 10.5, 16 }, PerRow = 8, Spacing = 6 },
+		Many = { KingDistance = 30.5, Rows = { 15, 19.5, 24 }, PerRow = 4, Spacing = 5.5 },
 	},
 	Gourd = {
 		Name = "호리병 판",

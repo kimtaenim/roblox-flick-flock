@@ -294,49 +294,28 @@ function Board.addBumps(piecesFolder: Instance)
 	if not floor.BumpCount or not board then
 		return
 	end
-	local shape = Board.shape
 	local random = Random.new()
-	local placed = 0
-	local tries = 0
-	local spots: { Vector3 } = {}
-	while placed < floor.BumpCount and tries < floor.BumpCount * 40 do
-		tries += 1
-		local x = random:NextNumber(-shape.reach, shape.reach)
-		local z = random:NextNumber(-shape.reach, shape.reach)
-		local ok = BoardShape.inside(shape, x, z, floor.BumpRadius + 1)
-		if ok then
-			-- 알과 다른 혹에서 떨어뜨린다
-			for _, piece in piecesFolder:GetChildren() do
-				if piece:IsA("BasePart") then
-					local gap = Vector3.new(piece.Position.X - x, 0, piece.Position.Z - z).Magnitude
-					if gap < piece.Size.Y / 2 + floor.BumpRadius + 1.5 then
-						ok = false
-						break
-					end
-				end
-			end
-			for _, spot in spots do
-				if (spot - Vector3.new(x, 0, z)).Magnitude < floor.BumpRadius * 2.5 then
-					ok = false
-					break
-				end
-			end
+	local occupied = {}
+	for _, piece in piecesFolder:GetChildren() do
+		if piece:IsA("BasePart") then
+			table.insert(occupied, { piece.Position.X, piece.Position.Z, piece.Size.Y / 2 })
 		end
-		if ok then
-			placed += 1
-			table.insert(spots, Vector3.new(x, 0, z))
-			local bump = Instance.new("Part")
-			bump.Name = "Bump"
-			bump.Shape = Enum.PartType.Ball
-			bump.Anchored = true
-			bump.CanQuery = false
-			bump.Size = Vector3.one * floor.BumpRadius * 2
-			bump.Position = Vector3.new(x, Config.BoardHeight - floor.BumpRadius + floor.BumpHeight, z)
-			bump.Color = floor.Color:Lerp(Color3.new(0, 0, 0), 0.25)
-			bump.Material = Enum.Material.Rock
-			bump.CustomPhysicalProperties = PhysicalProperties.new(0.7, Board.setup.friction, 0.3, 1, 1)
-			bump.Parent = board
-		end
+	end
+	local spots = BoardShape.bumpSpots(Board.shape, floor.BumpCount, floor.BumpRadius, occupied, function(low, high)
+		return random:NextNumber(low, high)
+	end)
+	for _, spot in spots do
+		local bump = Instance.new("Part")
+		bump.Name = "Bump"
+		bump.Shape = Enum.PartType.Ball
+		bump.Anchored = true
+		bump.CanQuery = false
+		bump.Size = Vector3.one * floor.BumpRadius * 2
+		bump.Position = Vector3.new(spot.x, Config.BoardHeight - floor.BumpRadius + floor.BumpHeight, spot.z)
+		bump.Color = floor.Color:Lerp(Color3.new(0, 0, 0), 0.25)
+		bump.Material = Enum.Material.Rock
+		bump.CustomPhysicalProperties = PhysicalProperties.new(0.7, Board.setup.friction, 0.3, 1, 1)
+		bump.Parent = board
 	end
 end
 

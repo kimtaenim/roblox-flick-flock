@@ -162,6 +162,51 @@ function BoardShape.wallSpots(shape: Shape): { { x: number, z: number, nx: numbe
 	return spots
 end
 
+-- 울퉁불퉁 바닥의 혹 자리 : 알(occupied)과 다른 혹에서 떨어진 빈 곳에 count 개까지
+-- occupied : { { x, z, r }, ... }, nextNumber(low, high) : 무작위 숫자 함수
+function BoardShape.bumpSpots(
+	shape: Shape,
+	count: number,
+	bumpRadius: number,
+	occupied: { { number } },
+	nextNumber: (number, number) -> number
+): { { x: number, z: number } }
+	local spots = {}
+	local tries = 0
+	while #spots < count and tries < count * 60 do
+		tries += 1
+		local x = nextNumber(-shape.reach, shape.reach)
+		local z = nextNumber(-shape.reach, shape.reach)
+		local ok = BoardShape.inside(shape, x, z, bumpRadius + 1)
+		if ok then
+			for _, other in occupied do
+				if math.sqrt((other[1] - x) ^ 2 + (other[2] - z) ^ 2) < other[3] + bumpRadius + 1.5 then
+					ok = false
+					break
+				end
+			end
+		end
+		if ok then
+			for _, spot in spots do
+				if math.sqrt((spot.x - x) ^ 2 + (spot.z - z) ^ 2) < bumpRadius * 2.5 then
+					ok = false
+					break
+				end
+			end
+		end
+		if ok then
+			table.insert(spots, { x = x, z = z })
+		end
+	end
+	return spots
+end
+
+-- 혹이 판 윗면에서 차지하는 동그라미 반지름 (공을 묻어서 위만 솟게 했을 때)
+function BoardShape.bumpFootprint(bumpRadius: number, bumpHeight: number): number
+	local below = bumpRadius - bumpHeight
+	return math.sqrt(math.max(bumpRadius * bumpRadius - below * below, 0))
+end
+
 ---------------------------------------------------------------- 판 설정 한 묶음
 -- 이번 판의 모양·크기·바닥·팀 배치. 서버(Board), 화면(팀 고르기), 시뮬레이션이 모두 이걸 써서 같은 판을 본다.
 -- config = Config 모듈
