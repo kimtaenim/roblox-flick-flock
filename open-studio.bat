@@ -69,6 +69,16 @@ if errorlevel 1 (
     echo [WARN] git pull failed - continuing with local files.
 )
 
+REM Hand off to the newest launcher inside the repo, so an old copy
+REM (for example one saved on the Desktop) still runs the latest steps.
+if /i not "%~3"=="--latest" (
+    if exist "%REPO%\open-studio.bat" (
+        copy /y "%REPO%\open-studio.bat" "%TEMP%\flickflock_latest.bat" >nul
+        call "%TEMP%\flickflock_latest.bat" --from-temp "%REPO%\" --latest
+        exit /b
+    )
+)
+
 REM Desktop shortcut "Flick Flock" -> the launcher inside the repo (always the latest one).
 REM Re-created every run so the Roblox Studio icon stays valid after Studio updates.
 echo [1/4] Updating desktop shortcut ...

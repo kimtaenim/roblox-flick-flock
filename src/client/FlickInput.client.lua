@@ -206,6 +206,26 @@ local dragging: Drag? = nil
 local shotDirection = Vector3.zero
 local shotPower = 0
 
+-- 조준 중 안내 : 취소하는 방법
+local aimGui = Instance.new("ScreenGui")
+aimGui.Name = "AimHint"
+aimGui.ResetOnSpawn = false
+local aimHint = Instance.new("TextLabel")
+aimHint.AnchorPoint = Vector2.new(0.5, 1)
+aimHint.Position = UDim2.new(0.5, 0, 1, -130)
+aimHint.Size = UDim2.new(0.9, 0, 0, 30)
+aimHint.BackgroundTransparency = 1
+aimHint.Font = Enum.Font.GothamBold
+aimHint.TextSize = 22
+aimHint.TextColor3 = Color3.new(1, 1, 1)
+aimHint.TextStrokeTransparency = 0.3
+aimHint.Visible = false
+aimHint.Parent = aimGui
+aimGui.Parent = player:WaitForChild("PlayerGui")
+
+local CANCEL_TEXT = "✖ 알 위로 돌아와서 놓거나, 오른쪽 클릭·Esc 를 누르면 취소"
+local WILL_CANCEL_TEXT = "지금 놓으면 취소돼요 (다른 알을 골라도 돼요)"
+
 -- 화면 위치 → 알 높이의 수평면 위 한 점
 local function screenToWorld(screenPosition: Vector3, planeY: number): Vector3?
 	local ray = camera:ScreenPointToRay(screenPosition.X, screenPosition.Y)
@@ -221,6 +241,14 @@ end
 
 local function hideAim()
 	aimArrow.Parent = nil
+	aimHint.Visible = false
+end
+
+-- 조준 그만두기 (차례는 그대로, 다시 골라서 칠 수 있다)
+local function cancelAim()
+	dragging = nil
+	shotPower = 0
+	hideAim()
 end
 
 local function updateAim(screenPosition: Vector3)
@@ -237,11 +265,15 @@ local function updateAim(screenPosition: Vector3)
 
 	local pull = Vector3.new(point.X - center.X, 0, point.Z - center.Z)
 	local shot = if Config.PullBackToShoot then -pull else pull
-	if shot.Magnitude < 0.01 then
+	aimHint.Visible = true
+	-- 알 가까이로 돌아오면 놓아도 안 쏜다
+	if shot.Magnitude < Config.CancelDragDistance then
 		shotPower = 0
-		hideAim()
+		aimArrow.Parent = nil
+		aimHint.Text = WILL_CANCEL_TEXT
 		return
 	end
+	aimHint.Text = CANCEL_TEXT
 	shotDirection = shot.Unit
 	shotPower = math.clamp(shot.Magnitude / Config.MaxDragDistance, 0, 1)
 
@@ -269,6 +301,18 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if result and canFlick(result.Instance) then
 		dragging = { piece = result.Instance :: BasePart, input = input }
 		shotPower = 0
+		aimHint.Text = CANCEL_TEXT
+		aimHint.Visible = true
+	end
+end)
+
+-- 조준 중에 오른쪽 클릭·Esc = 취소
+UserInputService.InputBegan:Connect(function(input)
+	if not dragging then
+		return
+	end
+	if input.UserInputType == Enum.UserInputType.MouseButton2 or input.KeyCode == Enum.KeyCode.Escape then
+		cancelAim()
 	end
 end)
 
@@ -278,7 +322,8 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	end
 	local isRight = input.UserInputType == Enum.UserInputType.MouseButton2
 	-- 왼쪽·터치는 알을 안 잡았을 때만 (위 InputBegan 이 먼저 dragging 을 정한다)
-	if isRight or (isPress(input) and not dragging) then
+	-- (조준 중 오른쪽 클릭은 취소라서 화면을 안 돌린다)
+	if (isRight and not dragging) or (isPress(input) and not dragging) then
 		task.defer(function()
 			if isRight or not dragging then
 				cameraDragInput = input
@@ -332,17 +377,16 @@ UserInputService.InputEnded:Connect(function(input)
 		return
 	end
 
-	dragging = nil
-	hideAim()
-	if isMyTurn() and drag.piece.Parent and shotPower >= Config.MinFlickPower then
-		Remotes.Flick:FireServer(drag.piece, shotDirection, shotPower)
+	local power = shotPower
+	cancelAim()
+	if isMyTurn() and drag.piece.Parent and power >= Config.MinFlickPower then
+		Remotes.Flick:FireServer(drag.piece, shotDirection, power)
 	end
 end)
 
 -- 차례가 끝나면 끌던 것 취소
 state:GetAttributeChangedSignal("Phase"):Connect(function()
 	if state:GetAttribute("Phase") ~= "Aiming" then
-		dragging = nil
-		hideAim()
+		cancelAim()
 	end
 end)

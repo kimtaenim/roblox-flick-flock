@@ -21,12 +21,13 @@ Config.MassUnit = 10 -- 질량 1 = 실제 무게 몇
 -- friction 이 작을수록 멀리 가고, bounce 가 클수록 세게 튄다 (0~1)
 -- flickScale : 튕기는 힘 배율 (없으면 1). 쪼꼬미는 가벼워서 그냥 두면 너무 빨라 0.6 으로 줄임
 Config.Pieces = {
-	King = { shape = "Flat", size = 2, mass = 4, hp = 150, ability = nil, friction = 0.3, bounce = 0.4 }, -- 왕알
+	King = { shape = "Flat", size = 2, mass = 4, hp = 150, ability = nil, friction = 0.3, bounce = 0.4, flickScale = 2.5 }, -- 왕알 (무거워서 세게 튕김)
 	Flat = { shape = "Flat", size = 1, mass = 1, hp = 0, ability = nil, friction = 0.3, bounce = 0.4 }, -- 납작 알
 	Round = { shape = "Round", size = 1, mass = 1, hp = 0, ability = nil, friction = 0.1, bounce = 0.7 }, -- 둥근 알
 	Half = { shape = "Round", size = 0.5, mass = 0.5, hp = 0, ability = nil, friction = 0.12, bounce = 0.7, flickScale = 0.6 }, -- 0.5 알 (쪼꼬미)
 }
-Config.CanFlickKing = true -- 왕알도 튕길 수 있음 (무거워서 멀리 안 감)
+Config.CanFlickKing = true -- 왕알도 튕길 수 있음
+Config.HeavyFlickPower = 0.6 -- 거대화로 무거워진 알은 튕기는 힘을 (무게 배율 ^ 이 숫자) 배로 키운다 (0 = 안 키움, 1 = 보통 알처럼 날아감)
 
 -- 데미지 (왕알)
 Config.DamageScale = 0.6 -- damage = 충돌 속도 × 때린 알 질량 × DamageScale
@@ -83,6 +84,7 @@ Config.PresetTeams = {
 Config.FlickPower = 700 -- 최대 세기일 때 임펄스
 Config.MinFlickPower = 0.05 -- 이보다 약하면 발사 안 함 (0~1)
 Config.MaxDragDistance = 15 -- 이만큼 끌면 최대 세기
+Config.CancelDragDistance = 2 -- 조준할 때 알에서 이만큼 안으로 되돌아와서 놓으면 취소
 Config.PullBackToShoot = true -- true: 새총처럼 뒤로 끌어 쏘기, false: 끈 방향으로 쏘기
 
 -- 턴
@@ -98,11 +100,13 @@ Config.ExplosionKingDamage = 30 -- 가운데에서 왕알이 받는 데미지 (�
 Config.ExplosionWallHeight = 6 -- 폭발 턴에 판 가장자리에 세우는 안 보이는 벽 높이
 Config.GiantScale = 2 -- 거대화 배율 (크기·질량)
 Config.MagnetElasticity = 1 -- 자석 알에 부딪히면 되튕기는 정도
+Config.MagnetMassScale = 6 -- 자석 알은 이만큼 무거워진다 (세게 맞으면 조금 밀림)
+Config.MagnetFriction = 1.5 -- 자석 알이 바닥에 붙는 정도 (0~2)
 -- 효과가 유지되는 턴 수 (능력을 쓴 내 턴도 1로 센다)
--- 유령·똥 2 = 상대 턴 한 번 동안 / 자석 3 = 상대 턴 + 내 다음 턴 동안 (그동안 나도 상대도 못 움직임)
+-- 2 = 능력을 쓴 뒤 상대 턴 한 번 동안
 Config.PoopSlowFactor = 0.35 -- 똥을 밟으면 속도가 이만큼으로 줄어듦
 Config.FootprintTime = 4 -- 똥 발자국이 남는 시간 (초)
-Config.EffectTurns = { Ghost = 2, Poop = 2, Magnet = 3 }
+Config.EffectTurns = { Ghost = 2, Poop = 2, Magnet = 2 }
 -- 여러 번 쓸 수 있는 능력 (나머지는 한 번 쓰면 끝)
 Config.ReusableAbilities = { Poop = true, Ghost = true }
 -- 소환 확률 (합이 100)

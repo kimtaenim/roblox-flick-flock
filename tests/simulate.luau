@@ -137,28 +137,14 @@ local function anyMoving(pieces): boolean
 	return false
 end
 
--- GameManager.loseReason 과 같은 규칙
+-- GameManager.loseReason 과 같은 규칙 (왕알만 남아도 계속 싸운다)
 local function loseReason(pieces, team: number): string?
-	local king, soldiers = nil, 0
 	for _, p in pieces do
-		if p.alive and p.team == team then
-			if p.kind == "King" then
-				king = p
-			else
-				soldiers += 1
-			end
+		if p.alive and p.team == team and p.kind == "King" then
+			return if p.hp <= 0 then "왕알 격파" else nil
 		end
 	end
-	if not king then
-		return "왕알 탈락"
-	end
-	if king.hp <= 0 then
-		return "왕알 격파"
-	end
-	if soldiers == 0 then
-		return "알 전멸"
-	end
-	return nil
+	return "왕알 탈락"
 end
 
 local function infoOf(p)

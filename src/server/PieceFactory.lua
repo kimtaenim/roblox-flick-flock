@@ -41,19 +41,30 @@ function PieceFactory.massFactor(piece: BasePart): number
 	return (if info then info.mass else 1) * scale
 end
 
-local function setPhysics(piece: BasePart, kind: string, massScale: number, elasticity: number?)
-	local info = Config.Pieces[kind]
+-- 무게·마찰·튕김 다시 계산. MassScale(거대화)·Magnet(자석) 속성을 본다.
+function PieceFactory.refreshPhysics(piece: BasePart)
+	local info = Config.Pieces[piece:GetAttribute("Kind") :: string]
+	local massScale = (piece:GetAttribute("MassScale") :: number?) or 1
+	local magnet = piece:GetAttribute("Magnet") == true
+	if magnet then
+		massScale *= Config.MagnetMassScale
+	end
 	local volume = math.pi * (piece.Size.Y / 2) ^ 2 * piece.Size.X
 	-- 질량이 Config 값과 같도록 밀도를 맞춘다
 	local density = math.clamp(info.mass * Config.MassUnit * massScale / volume, 0.01, 100)
-	local bounce = elasticity or info.bounce
-	-- 튕김이 크게 바뀐 알(자석)은 상대 알보다 튕김 비중을 크게
-	local bounceWeight = if elasticity then 100 else 1
-	piece.CustomPhysicalProperties = PhysicalProperties.new(density, info.friction, bounce, 1, bounceWeight)
+	local friction = if magnet then Config.MagnetFriction else info.friction
+	local bounce = if magnet then Config.MagnetElasticity else info.bounce
+	-- 자석 알은 마찰·튕김 비중을 크게 (상대 알 값보다 자석 값이 이긴다)
+	local weight = if magnet then 100 else 1
+	piece.CustomPhysicalProperties = PhysicalProperties.new(density, friction, bounce, weight, weight)
 end
 
-function PieceFactory.setElasticity(piece: BasePart, elasticity: number?)
-	setPhysics(piece, piece:GetAttribute("Kind") :: string, (piece:GetAttribute("MassScale") :: number?) or 1, elasticity)
+-- 튕길 때 힘 배율 : 알 종류(flickScale) × 거대화 보정. 자석은 보정 없음 (무거워서 조금만 감)
+function PieceFactory.flickScale(piece: BasePart): number
+	local info = Config.Pieces[piece:GetAttribute("Kind") :: string]
+	local scale = if info and info.flickScale then info.flickScale else 1
+	local massScale = (piece:GetAttribute("MassScale") :: number?) or 1
+	return scale * massScale ^ Config.HeavyFlickPower
 end
 
 -- 눈에 보이는 몸통 파트들 (둥근 알은 겉모양, 납작 알은 자기 자신)
@@ -360,7 +371,7 @@ function PieceFactory.create(
 		piece:SetAttribute("Look", character.Look)
 	end
 
-	setPhysics(piece, kind, 1, nil)
+	PieceFactory.refreshPhysics(piece)
 	piece.Color = Config.Teams[team].Color
 	piece.Material = Enum.Material.SmoothPlastic
 	piece.TopSurface = Enum.SurfaceType.Smooth
@@ -381,14 +392,13 @@ end
 
 -- 크기·질량을 scale 배로 (거대화)
 function PieceFactory.resize(piece: BasePart, scale: number)
-	local kind = piece:GetAttribute("Kind") :: string
 	local massScale = ((piece:GetAttribute("MassScale") :: number?) or 1) * scale
 	local oldHalf = PieceFactory.halfHeight(piece)
 	local bottom = piece.Position - Vector3.new(0, oldHalf, 0)
 
 	piece.Size = piece.Size * scale
 	piece:SetAttribute("MassScale", massScale)
-	setPhysics(piece, kind, massScale, nil)
+	PieceFactory.refreshPhysics(piece)
 	-- 바닥에 파묻히지 않게 위로 올린다 (회전은 그대로)
 	local rotation = piece.CFrame - piece.Position
 	piece.CFrame = CFrame.new(bottom + Vector3.new(0, PieceFactory.halfHeight(piece) + 0.05, 0)) * rotation

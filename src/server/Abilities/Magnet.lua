@@ -1,15 +1,12 @@
--- 자석 : 바닥에 딱 붙는다. 상대 턴과 내 다음 턴 동안 나도 상대도 못 움직임 (Config.EffectTurns.Magnet).
--- 때린 알은 딱딱하게 되튕김.
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
-
+-- 자석 : 아주 무거워지고 바닥에 착 붙는다 (상대 턴 한 번 동안, Config.EffectTurns.Magnet).
+-- 세게 맞으면 조금은 밀린다. 때린 알은 딱딱하게 되튕김.
 local Ability = {}
 
 function Ability.Execute(piece: BasePart, context)
 	piece.AssemblyLinearVelocity = Vector3.zero
 	piece.AssemblyAngularVelocity = Vector3.zero
-	piece.Anchored = true
-	context.PieceFactory.setElasticity(piece, Config.MagnetElasticity)
+	piece:SetAttribute("Magnet", true)
+	context.PieceFactory.refreshPhysics(piece)
 	for _, part in context.PieceFactory.bodyParts(piece) do
 		part.Material = Enum.Material.DiamondPlate
 	end
@@ -18,13 +15,12 @@ end
 
 function Ability.OnTurnEnd(piece: BasePart)
 	-- 효과가 끝날 때 (GameManager 가 남은 턴이 0 이 되면 부른다)
-	piece.Anchored = false
 	local PieceFactory = require(script.Parent.Parent:WaitForChild("PieceFactory"))
+	piece:SetAttribute("Magnet", nil)
+	PieceFactory.refreshPhysics(piece)
 	for _, part in PieceFactory.bodyParts(piece) do
 		part.Material = Enum.Material.SmoothPlastic
 	end
-	PieceFactory.setElasticity(piece, nil)
-	piece:SetNetworkOwner(nil)
 end
 
 return Ability

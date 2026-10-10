@@ -155,16 +155,6 @@ local function kingOf(team: number): BasePart?
 	return nil
 end
 
-local function countSoldiers(team: number): number
-	local count = 0
-	for _, piece in piecesOf(team) do
-		if piece:GetAttribute("Kind") ~= "King" then
-			count += 1
-		end
-	end
-	return count
-end
-
 -- 아직 안 진 상대 팀들의 알
 local function enemyPiecesOf(team: number): { BasePart }
 	local list = {}
@@ -342,9 +332,8 @@ end
 local function applyFlick(piece: BasePart, direction: Vector3, power: number)
 	state:SetAttribute("Phase", "Moving")
 	piece:SetNetworkOwner(nil)
-	local info = Config.Pieces[piece:GetAttribute("Kind") :: string]
-	local flickScale = if info and info.flickScale then info.flickScale else 1
-	piece:ApplyImpulse(direction.Unit * power * Config.FlickPower * flickScale)
+	-- 왕알·거대화 알은 무거운 만큼 세게 (PieceFactory.flickScale)
+	piece:ApplyImpulse(direction.Unit * power * Config.FlickPower * PieceFactory.flickScale(piece))
 	Effects.sound("Flick", piece)
 	-- 상대 왕알을 노리고 치면 허세, 아니면 보통 대사
 	local aimingAtKing = false
@@ -445,7 +434,7 @@ local function toInfo(piece: BasePart): Npc.PieceInfo
 		isKing = piece:GetAttribute("Kind") == "King",
 		hp = piece:GetAttribute("Hp") :: number?,
 		massFactor = PieceFactory.massFactor(piece),
-		flickScale = if info then info.flickScale else nil,
+		flickScale = PieceFactory.flickScale(piece),
 	}
 end
 
@@ -747,7 +736,7 @@ local function waitUntilStopped()
 	end
 end
 
--- 진 팀 확인 : 왕알이 없거나 HP 0, 또는 왕알 말고 남은 알이 없으면 진다
+-- 진 팀 확인 : 왕알이 판 밖으로 나갔거나 HP 0 이면 진다 (왕알만 남아도 계속 싸운다)
 local function loseReason(team: number): string?
 	local king = kingOf(team)
 	if not king then
@@ -755,9 +744,6 @@ local function loseReason(team: number): string?
 	end
 	if (king:GetAttribute("Hp") or 0) <= 0 then
 		return "왕알 격파!"
-	end
-	if countSoldiers(team) == 0 then
-		return "알이 모두 떨어졌어요!"
 	end
 	return nil
 end
