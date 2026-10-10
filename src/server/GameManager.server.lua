@@ -516,6 +516,7 @@ local function playNpcTurn(team: number)
 		damageScale = Config.DamageScale,
 		damageMinSpeed = Config.DamageMinSpeed,
 		mistakeChance = Config.NpcMistakeChance,
+		kingFocus = Config.NpcKingFocus,
 		powerError = Config.NpcPowerError,
 	}, random, blockers)
 	if not shot then

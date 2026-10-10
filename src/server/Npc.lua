@@ -160,7 +160,17 @@ function Npc.chooseShot(mine: { PieceInfo }, enemies: { PieceInfo }, settings, r
 		end
 	end
 
-	-- 점수가 높은 샷을 고른다. 왕알을 가장 먼저 노린다.
+	-- 이번 턴에 왕알을 노릴지 (settings.kingFocus 확률). 아니면 보통 알만 노린다.
+	-- 상대에게 왕알만 남았으면 왕알을 노릴 수밖에 없다.
+	local onlyKings = true
+	for _, enemy in enemies do
+		if not enemy.isKing then
+			onlyKings = false
+		end
+	end
+	local goForKing = onlyKings or settings.kingFocus == nil or rng:NextNumber(0, 1) < settings.kingFocus
+
+	-- 점수가 높은 샷을 고른다. 왕알을 노릴 때는 왕알이 먼저.
 	local best: Shot? = nil
 	local bestValue = -math.huge
 	local function consider(value: number, shot: Shot)
@@ -172,6 +182,10 @@ function Npc.chooseShot(mine: { PieceInfo }, enemies: { PieceInfo }, settings, r
 
 	for shooterIndex, shooter in mine do
 		for targetIndex, target in enemies do
+			-- 이번 턴에 왕알을 안 노리기로 했으면 왕알은 건너뛴다 (길은 막는다)
+			if target.isKing and not goForKing then
+				continue
+			end
 			local blocked = isBlocked(shooter, target, everyone)
 
 			-- ① 판 밖으로 밀어내기
@@ -203,7 +217,7 @@ function Npc.chooseShot(mine: { PieceInfo }, enemies: { PieceInfo }, settings, r
 	end
 
 	-- 좋은 샷이 없으면 그래도 왕알 쪽으로 (가는 길의 알을 밀어 준다)
-	if bestValue < 0 then
+	if bestValue < 0 and goForKing then
 		for targetIndex, target in enemies do
 			if target.isKing then
 				local shooter = mine[1]

@@ -211,6 +211,7 @@ local function playGame(seed: number, presets: { number })
 			damageScale = Config.DamageScale,
 			damageMinSpeed = Config.DamageMinSpeed,
 			mistakeChance = Config.NpcMistakeChance,
+			kingFocus = Config.NpcKingFocus,
 			powerError = Config.NpcPowerError,
 		}, rng :: any)
 		if shot then
