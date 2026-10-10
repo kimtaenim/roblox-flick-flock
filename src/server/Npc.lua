@@ -180,7 +180,25 @@ function Npc.chooseShot(mine: { PieceInfo }, enemies: { PieceInfo }, settings, r
 		end
 	end
 
+	-- 내 왕알은 다른 알이 하나도 없을 때만 친다 (용암·판 밖으로 스스로 뛰어들지 않게)
+	local hasSoldier = false
+	local firstShooter = 1
+	for index, piece in mine do
+		if not piece.isKing then
+			if not hasSoldier then
+				firstShooter = index
+			end
+			hasSoldier = true
+		end
+	end
+	local function usable(piece: PieceInfo): boolean
+		return not (piece.isKing and hasSoldier)
+	end
+
 	for shooterIndex, shooter in mine do
+		if not usable(shooter) then
+			continue
+		end
 		for targetIndex, target in enemies do
 			-- 이번 턴에 왕알을 안 노리기로 했으면 왕알은 건너뛴다 (길은 막는다)
 			if target.isKing and not goForKing then
@@ -220,10 +238,10 @@ function Npc.chooseShot(mine: { PieceInfo }, enemies: { PieceInfo }, settings, r
 	if bestValue < 0 and goForKing then
 		for targetIndex, target in enemies do
 			if target.isKing then
-				local shooter = mine[1]
+				local shooter = mine[firstShooter]
 				local dx, dz = target.x - shooter.x, target.z - shooter.z
 				local length = math.max(math.sqrt(dx * dx + dz * dz), 1e-3)
-				best = { shooter = 1, target = targetIndex, dirX = dx / length, dirZ = dz / length, power = 0.7 }
+				best = { shooter = firstShooter, target = targetIndex, dirX = dx / length, dirZ = dz / length, power = 0.7 }
 			end
 		end
 	end
@@ -233,14 +251,17 @@ function Npc.chooseShot(mine: { PieceInfo }, enemies: { PieceInfo }, settings, r
 		result = best
 	else
 		-- 상대 알이 없으면 가운데 쪽으로 살짝
-		local shooter = mine[1]
+		local shooter = mine[firstShooter]
 		local length = math.max(math.sqrt(shooter.x ^ 2 + shooter.z ^ 2), 1e-3)
-		result = { shooter = 1, target = nil, dirX = -shooter.x / length, dirZ = -shooter.z / length, power = 0.3 }
+		result = { shooter = firstShooter, target = nil, dirX = -shooter.x / length, dirZ = -shooter.z / length, power = 0.3 }
 	end
 
 	-- 가끔 실수 : 아무 알로 아무 상대 알 쪽을 아무 세기로
 	if settings.mistakeChance and rng:NextNumber(0, 1) < settings.mistakeChance and #enemies > 0 then
 		local shooterIndex = math.clamp(math.floor(rng:NextNumber(1, #mine + 1)), 1, #mine)
+		if not usable(mine[shooterIndex]) then
+			shooterIndex = firstShooter
+		end
 		-- 실수할 때는 보통 알 쪽으로 (보통 알이 없을 때만 왕알)
 		local choices = {}
 		for index, enemy in enemies do
@@ -274,6 +295,16 @@ function Npc.chooseShot(mine: { PieceInfo }, enemies: { PieceInfo }, settings, r
 	-- 사람처럼 조금 빗나가게
 	local errorDegrees = rng:NextNumber(-settings.aimErrorDegrees, settings.aimErrorDegrees)
 	result.dirX, result.dirZ = rotate(result.dirX, result.dirZ, errorDegrees)
+
+	-- 왕알을 칠 때는 미끄러져서 판 끝·용암 구멍에 닿기 전에 멈추는 세기까지만
+	local shooter = mine[result.shooter]
+	if shooter.isKing then
+		local slow = shooter.slow or settings.friction * settings.gravity
+		local room = distanceToEdge(shooter.x, shooter.z, result.dirX, result.dirZ, settings) - shooter.radius - 2
+		local safeSpeed = math.sqrt(2 * slow * math.max(room, 0))
+		local safePower = safeSpeed * shooter.mass / (settings.flickPower * (shooter.flickScale or 1))
+		result.power = math.min(result.power, safePower)
+	end
 	return result
 end
 
