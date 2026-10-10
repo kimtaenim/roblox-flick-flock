@@ -30,6 +30,30 @@ local function pick(list: { string }?): string?
 	return list[math.random(1, #list)]
 end
 
+-- 이 알 캐릭터의 대사 목록 (없으면 nil)
+local function characterLines(piece: BasePart, group: string, event: string): { string }?
+	local name = piece:GetAttribute("Character")
+	local list = Config.Characters[group]
+	if not name or not list then
+		return nil
+	end
+	for _, character in list do
+		if typeof(character) == "table" and character.Name == name and character.Lines then
+			return character.Lines[event]
+		end
+	end
+	return nil
+end
+
+-- "용감이: 돌격!!" 처럼 이름 붙이기
+local function withName(piece: BasePart, text: string): string
+	local name = piece:GetAttribute("Character")
+	if typeof(name) == "string" then
+		return name .. ": " .. text
+	end
+	return text
+end
+
 -- 말풍선 만들기. 알이 사라지면 그 자리에 남아서 마저 보인다.
 local function showBubble(piece: BasePart, text: string, color: Color3)
 	local old = currentBubble[piece]
@@ -44,7 +68,7 @@ local function showBubble(piece: BasePart, text: string, color: Color3)
 		end
 	end)
 	gui.Name = "Speech"
-	gui.Size = UDim2.fromOffset(180, 46)
+	gui.Size = UDim2.fromOffset(230, 46)
 	-- 왕알은 HP 막대 위로
 	local extra = if piece:FindFirstChild("HpBar") then 3 else 0
 	gui.StudsOffsetWorldSpace = Vector3.new(0, piece.Size.Y / 2 + 3.5 + extra, 0)
@@ -123,10 +147,12 @@ function Speech.say(piece: BasePart, event: string, force: boolean?)
 		end
 	end
 	local group = voiceGroup(piece:GetAttribute("Kind") :: string?)
-	local text = pick(Config.Lines[group][event])
+	-- 캐릭터만의 대사가 있으면 그것, 없으면 보통 대사
+	local text = pick(characterLines(piece, group, event)) or pick(Config.Lines[group][event])
 	if not text then
 		return
 	end
+	text = withName(piece, text)
 	lastSpoke[piece] = now
 
 	local team = piece:GetAttribute("Team") :: number?
@@ -141,6 +167,7 @@ function Speech.sayAbility(piece: BasePart, abilityId: string)
 	if not text then
 		return
 	end
+	text = withName(piece, text)
 	local team = piece:GetAttribute("Team") :: number?
 	local color = if team and Config.Teams[team] then Config.Teams[team].Color else Color3.new(0, 0, 0)
 	lastSpoke[piece] = os.clock()

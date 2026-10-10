@@ -79,10 +79,18 @@ function PieceFactory.setTransparency(piece: BasePart, transparency: number)
 	end
 end
 
-local function makeDecoration(name: string, size: Vector3, color: Color3, cframe: CFrame, piece: BasePart, folder: Instance)
+local function makeDecoration(
+	name: string,
+	size: Vector3,
+	color: Color3,
+	cframe: CFrame,
+	piece: BasePart,
+	folder: Instance,
+	shape: Enum.PartType?
+)
 	local part = Instance.new("Part")
 	part.Name = name
-	part.Shape = Enum.PartType.Ball
+	part.Shape = shape or Enum.PartType.Ball
 	part.Size = size
 	part.Color = color
 	part.Material = Enum.Material.SmoothPlastic
@@ -149,6 +157,10 @@ function PieceFactory.decorate(piece: BasePart)
 		eyeBase = center + up * height / 2 + forward * radius * 0.45
 	end
 	local eyeSize = radius * 0.45
+	-- 얼굴 방향 : faceOut = 얼굴이 보는 쪽, faceUp = 이마 쪽 (납작 알은 얼굴이 윗면)
+	local faceOut = if isRound(piece) then (forward * 0.8 + up * 0.6).Unit else up
+	local faceUp = if isRound(piece) then (up * 0.8 - forward * 0.6).Unit else -forward
+	local look = piece:GetAttribute("Look")
 	for _, sign in { -1, 1 } do
 		local eyeCenter = eyeBase + side * sign * radius * 0.32
 		makeDecoration("Eye", Vector3.one * eyeSize, Color3.new(1, 1, 1), CFrame.new(eyeCenter), piece, folder)
@@ -159,6 +171,69 @@ function PieceFactory.decorate(piece: BasePart)
 			CFrame.new(eyeCenter + forward * eyeSize * 0.3 + up * eyeSize * 0.15),
 			piece,
 			folder
+		)
+		if look == "Brave" then
+			-- 화난 눈썹 : 안쪽 끝이 내려간다
+			local angle = math.rad(25)
+			local right = side * math.cos(angle) + faceUp * math.sin(angle) * sign
+			local browCenter = eyeCenter + faceUp * eyeSize * 0.75 + faceOut * eyeSize * 0.2
+			makeDecoration(
+				"Brow",
+				Vector3.new(eyeSize * 0.9, eyeSize * 0.15, eyeSize * 0.22),
+				Color3.new(0.1, 0.1, 0.1),
+				CFrame.fromMatrix(browCenter, right, faceOut),
+				piece,
+				folder,
+				Enum.PartType.Block
+			)
+		elseif look == "Sleepy" then
+			-- 반쯤 감긴 눈꺼풀
+			makeDecoration(
+				"Eyelid",
+				Vector3.one * eyeSize * 1.05,
+				piece.Color,
+				CFrame.new(eyeCenter + faceUp * eyeSize * 0.3 + faceOut * eyeSize * 0.12),
+				piece,
+				folder
+			)
+		elseif look == "Cool" then
+			-- 선글라스 알
+			makeDecoration(
+				"Glasses",
+				Vector3.one * eyeSize * 1.35,
+				Color3.new(0.05, 0.05, 0.05),
+				CFrame.new(eyeCenter + faceOut * eyeSize * 0.15),
+				piece,
+				folder
+			)
+		end
+	end
+
+	-- 입·땀방울 같은 얼굴 꾸미기
+	local mouth = eyeBase - faceUp * eyeSize * 0.95 + faceOut * eyeSize * 0.1
+	if look == "Hungry" then
+		makeDecoration("Mouth", Vector3.one * eyeSize * 0.7, Color3.fromRGB(150, 30, 40), CFrame.new(mouth), piece, folder)
+	elseif look == "Silly" then
+		makeDecoration("Tongue", Vector3.one * eyeSize * 0.55, Color3.fromRGB(255, 120, 150), CFrame.new(mouth), piece, folder)
+	elseif look == "Scared" then
+		makeDecoration(
+			"Sweat",
+			Vector3.new(eyeSize * 0.35, eyeSize * 0.5, eyeSize * 0.35),
+			Color3.fromRGB(120, 200, 255),
+			CFrame.new(eyeBase + side * radius * 0.75 + faceUp * eyeSize * 0.5 + faceOut * eyeSize * 0.3),
+			piece,
+			folder
+		)
+	elseif look == "Cool" then
+		-- 선글라스 다리
+		makeDecoration(
+			"Bridge",
+			Vector3.new(radius * 0.3, eyeSize * 0.12, eyeSize * 0.12),
+			Color3.new(0.05, 0.05, 0.05),
+			CFrame.fromMatrix(eyeBase + faceOut * eyeSize * 0.3, side, faceOut),
+			piece,
+			folder,
+			Enum.PartType.Block
 		)
 	end
 
@@ -251,7 +326,15 @@ function PieceFactory.refreshAbilityTag(piece: BasePart)
 end
 
 -- groundPosition : 알 바닥이 놓일 자리
-function PieceFactory.create(kind: string, team: number, groundPosition: Vector3, parent: Instance, ability: string?): Part
+-- character : Config.Characters 의 캐릭터 { Name, Look } (없으면 이름 없는 알)
+function PieceFactory.create(
+	kind: string,
+	team: number,
+	groundPosition: Vector3,
+	parent: Instance,
+	ability: string?,
+	character: { Name: string, Look: string? }?
+): Part
 	local info = Config.Pieces[kind]
 	assert(info, "모르는 알 종류: " .. tostring(kind))
 
@@ -272,6 +355,10 @@ function PieceFactory.create(kind: string, team: number, groundPosition: Vector3
 	piece:SetAttribute("Hp", info.hp)
 	piece:SetAttribute("MaxHp", info.hp)
 	piece:SetAttribute("Ability", ability)
+	if character then
+		piece:SetAttribute("Character", character.Name)
+		piece:SetAttribute("Look", character.Look)
+	end
 
 	setPhysics(piece, kind, 1, nil)
 	piece.Color = Config.Teams[team].Color

@@ -53,13 +53,47 @@ function Placement.findFreeSpot(wantX: number, wantZ: number, radius: number, fo
 	return best
 end
 
+-- 캐릭터 고르기 : 종류별 목록을 섞어서 앞에서부터 (한 팀 안에서 안 겹치게, 모자라면 다시 섞음)
+local function makeCharacterPicker(): (kind: string) -> { Name: string, Look: string? }
+	local decks: { [string]: { any } } = {}
+	local function shuffled(list: { any }): { any }
+		local copy = table.clone(list)
+		for index = #copy, 2, -1 do
+			local other = math.random(1, index)
+			copy[index], copy[other] = copy[other], copy[index]
+		end
+		return copy
+	end
+	return function(kind: string)
+		local group = if kind == "King" then "King" elseif kind == "Half" then "Small" else "Normal"
+		local deck = decks[group]
+		if not deck or #deck == 0 then
+			deck = shuffled(Config.Characters[group])
+			decks[group] = deck
+		end
+		local entry = table.remove(deck, 1)
+		-- 쪼꼬미 목록은 이름만 있다
+		if typeof(entry) == "string" then
+			return { Name = entry, Look = nil }
+		end
+		return entry
+	end
+end
+
+-- 아무 알에게 캐릭터 하나 (분신 등 중간에 생기는 알)
+function Placement.randomCharacter(kind: string): { Name: string, Look: string? }
+	return makeCharacterPicker()(kind)
+end
+
 -- 팀 알 배치 : 왕알은 뒤쪽 가운데, 나머지는 앞줄부터 채운다
 -- pieces : { { kind, ability? }, ... }
 function Placement.layoutTeam(team: number, teamCount: number, pieces: { { string } }, folder: Instance): { BasePart }
 	local layout = TeamLayout.pick(Config.Layouts, teamCount)
 	local created: { BasePart } = {}
+	local pickCharacter = makeCharacterPicker()
 	for _, slot in TeamLayout.slots(team, teamCount, pieces, layout) do
-		local piece = PieceFactory.create(slot.kind, team, Vector3.new(slot.x, Config.BoardHeight, slot.z), folder, slot.ability)
+		local position = Vector3.new(slot.x, Config.BoardHeight, slot.z)
+		local piece = PieceFactory.create(slot.kind, team, position, folder, slot.ability, pickCharacter(slot.kind))
 		table.insert(created, piece)
 	end
 	return created

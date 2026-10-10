@@ -23,7 +23,7 @@
 | 파일 | 역할 |
 | --- | --- |
 | `src/server/GameManager.server.lua` | 팀 고르기·턴 진행, 요청 검증, 능력 효과 턴 관리, 승패 |
-| `src/server/Board.lua` | 판 생성 |
+| `src/server/Board.lua` | 판 생성 (팀 수에 따라 사각형·육각형) |
 | `src/server/PieceFactory.lua` | 알 생성 (Config.Pieces 다섯 값), 눈·왕관, HP 막대, 거대화 |
 | `src/server/Placement.lua` | 팀 배치, 빈 자리 찾기 |
 | `src/server/Damage.lua` | 왕알 HP (충돌 데미지) |
@@ -40,6 +40,7 @@
 | `src/shared/Config.lua` | 모든 숫자 |
 | `src/shared/AbilityList.lua` | 능력 이름·아이콘 (이름은 아들과 결정) |
 | `src/shared/Remotes.lua` | RemoteEvent + GameState(Attribute) |
+| `src/shared/BoardShape.lua` | 판 모양(사각형·육각형) 판 안·가장자리 거리 계산 (숫자만) |
 | `src/shared/TeamLayout.lua` | 2~4팀 자리·방향·다음 차례 계산 (숫자만, 테스트 가능) |
 
 ## 진행 상황
@@ -51,6 +52,7 @@
 - [x] 5단계: 팀 선택 UI (추천 팀 4개 + 고급)
 - [x] 6단계: 알 디자인(눈·왕관, 임시), 소리, 튜토리얼
 - [x] 3·4팀 대결 (방장이 모드 선택, 모자란 자리는 NPC, 탈락제)
+- [x] 알 캐릭터 (이름·얼굴·성격 대사), 사람 후공, 3팀 육각형 판
 - [ ] Studio 실제 플레이 테스트 후 고칠 것 정리 (물리 느낌, 소리 파일 존재 여부, UI 크기)
 
 ## 설계서에서 정한 해석

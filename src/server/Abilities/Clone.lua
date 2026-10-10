@@ -13,7 +13,7 @@ function Ability.Execute(piece: BasePart, context)
 		local wantZ = piece.Position.Z
 		local spot = context.Placement.findFreeSpot(wantX, wantZ, radius, context.piecesFolder)
 		if spot then
-			local clone = context.PieceFactory.create("Half", context.team, spot, context.piecesFolder)
+			local clone = context.PieceFactory.create("Half", context.team, spot, context.piecesFolder, nil, context.Placement.randomCharacter("Half"))
 			context.watchPiece(clone)
 			context.Effects.sparkle(clone.Position, Config.Teams[context.team].Color, 15)
 		end
