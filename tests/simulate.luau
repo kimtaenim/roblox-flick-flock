@@ -217,6 +217,8 @@ local function playGame(seed: number, presetRed: number, presetBlue: number)
 			aimErrorDegrees = Config.NpcAimErrorDegrees,
 			damageScale = Config.DamageScale,
 			damageMinSpeed = Config.DamageMinSpeed,
+			mistakeChance = Config.NpcMistakeChance,
+			powerError = Config.NpcPowerError,
 		}, rng :: any)
 		if shot then
 			assert(shot.power >= 0 and shot.power <= 1, "세기가 0~1 밖")

@@ -233,6 +233,27 @@ function Npc.chooseShot(mine: { PieceInfo }, enemies: { PieceInfo }, settings, r
 		result = { shooter = 1, target = nil, dirX = -shooter.x / length, dirZ = -shooter.z / length, power = 0.3 }
 	end
 
+	-- 가끔 실수 : 아무 알로 아무 상대 알 쪽을 아무 세기로
+	if settings.mistakeChance and rng:NextNumber(0, 1) < settings.mistakeChance and #enemies > 0 then
+		local shooterIndex = math.clamp(math.floor(rng:NextNumber(1, #mine + 1)), 1, #mine)
+		local targetIndex = math.clamp(math.floor(rng:NextNumber(1, #enemies + 1)), 1, #enemies)
+		local shooter, target = mine[shooterIndex], enemies[targetIndex]
+		local dx, dz = target.x - shooter.x, target.z - shooter.z
+		local length = math.max(math.sqrt(dx * dx + dz * dz), 1e-3)
+		result = {
+			shooter = shooterIndex,
+			target = targetIndex,
+			dirX = dx / length,
+			dirZ = dz / length,
+			power = rng:NextNumber(0.3, 1),
+		}
+	end
+
+	-- 세기도 사람처럼 들쭉날쭉
+	if settings.powerError then
+		result.power = math.clamp(result.power * rng:NextNumber(1 - settings.powerError, 1 + settings.powerError), 0, 1)
+	end
+
 	-- 사람처럼 조금 빗나가게
 	local errorDegrees = rng:NextNumber(-settings.aimErrorDegrees, settings.aimErrorDegrees)
 	result.dirX, result.dirZ = rotate(result.dirX, result.dirZ, errorDegrees)

@@ -431,6 +431,8 @@ local function playNpcTurn(team: number)
 		aimErrorDegrees = Config.NpcAimErrorDegrees,
 		damageScale = Config.DamageScale,
 		damageMinSpeed = Config.DamageMinSpeed,
+		mistakeChance = Config.NpcMistakeChance,
+		powerError = Config.NpcPowerError,
 	}, random, blockers)
 	if not shot then
 		-- 튕길 알이 없으면 차례만 넘긴다

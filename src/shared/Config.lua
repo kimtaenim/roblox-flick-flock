@@ -106,6 +106,8 @@ Config.SoloWaitTime = 3 -- 친구를 이만큼 기다린 뒤 혼자 시작 (초)
 Config.NpcName = "NPC"
 Config.NpcThinkTime = 1.5 -- 쏘기 전에 생각하는 척 (초)
 Config.NpcAimErrorDegrees = 10 -- 조준이 빗나가는 정도 (클수록 쉬움)
+Config.NpcMistakeChance = 0.25 -- 엉뚱한 데로 치는 확률 (0~1, 클수록 쉬움)
+Config.NpcPowerError = 0.25 -- 세기가 틀리는 정도 (0.25 = ±25%, 클수록 쉬움)
 Config.NpcPowerBoost = 1.25 -- 계산한 세기보다 이만큼 세게 (클수록 과감)
 Config.NpcAbilityChance = 0.35 -- 능력 알이 있을 때 능력을 쓸 확률
 
