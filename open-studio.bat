@@ -1,7 +1,7 @@
 @echo off
 REM ============================================================
 REM  Flick Flock - local Studio launcher
-REM  Run it once from anywhere; it puts a "Flick Flock" shortcut on the Desktop.
+REM  Run it once from anywhere; it puts an Al-kkagi launcher (.bat) on the Desktop.
 REM  1. git clone (first time) / git pull (every time)
 REM  2. download Rojo + install the Rojo Studio plugin
 REM  3. build FlickFlock.rbxlx and open it in Roblox Studio
@@ -79,19 +79,18 @@ if /i not "%~3"=="--latest" (
     )
 )
 
-REM Desktop shortcut "Flick Flock" -> the launcher inside the repo (always the latest one).
-REM Re-created every run so the Roblox Studio icon stays valid after Studio updates.
-echo [1/4] Updating desktop shortcut ...
+REM Put a small launcher named Al-kkagi (in Korean) on the Desktop. It calls the
+REM launcher inside the repo, so it always runs the latest version.
+REM The Korean file name is built from character codes so this file stays plain ASCII.
+echo [1/4] Updating desktop launcher ...
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "$desktop=[Environment]::GetFolderPath('Desktop');" ^
-  "$link=(New-Object -ComObject WScript.Shell).CreateShortcut((Join-Path $desktop 'Flick Flock.lnk'));" ^
-  "$link.TargetPath='%REPO%\open-studio.bat';" ^
-  "$link.WorkingDirectory='%REPO%';" ^
-  "$link.Description='Flick Flock: git pull + Roblox Studio';" ^
-  "$studio=Get-ChildItem (Join-Path $env:LOCALAPPDATA 'Roblox\Versions') -Recurse -Filter RobloxStudioBeta.exe -ErrorAction SilentlyContinue | Select-Object -First 1;" ^
-  "if ($studio) { $link.IconLocation=$studio.FullName + ',0' };" ^
-  "$link.Save()"
-if errorlevel 1 echo [WARN] Could not create the desktop shortcut.
+  "$name=(-join [char[]](0xC54C,0xAE4C,0xAE30)) + '.bat';" ^
+  "$q=[char]34; $nl=[Environment]::NewLine;" ^
+  "$body='@echo off' + $nl + 'call ' + $q + '%REPO%\open-studio.bat' + $q + $nl;" ^
+  "[IO.File]::WriteAllText((Join-Path $desktop $name), $body, [Text.Encoding]::Default);" ^
+  "$old=Join-Path $desktop 'Flick Flock.lnk'; if (Test-Path $old) { Remove-Item $old }"
+if errorlevel 1 echo [WARN] Could not create the desktop launcher.
 
 set "ROJO_DIR=%REPO%\tools\rojo-%ROJO_VERSION%"
 set "ROJO=%ROJO_DIR%\rojo.exe"
