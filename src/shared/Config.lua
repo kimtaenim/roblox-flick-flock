@@ -24,7 +24,7 @@ Config.Pieces = {
 	Round = { shape = "Round", size = 1, mass = 1, hp = 0, ability = nil, rollSlow = 40 }, -- 둥근 알
 	Half = { shape = "Round", size = 0.5, mass = 0.5, hp = 0, ability = nil, rollSlow = 45 }, -- 0.5 알
 }
-Config.CanFlickKing = false -- 왕알도 튕길 수 있게 하려면 true
+Config.CanFlickKing = true -- 왕알도 튕길 수 있음 (무거워서 멀리 안 감)
 
 -- 데미지 (왕알)
 Config.DamageScale = 0.6 -- damage = 충돌 속도 × 때린 알 질량 × DamageScale
