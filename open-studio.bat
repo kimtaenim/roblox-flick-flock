@@ -94,8 +94,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "$studio=Get-ChildItem (Join-Path $env:LOCALAPPDATA 'Roblox\Versions') -Recurse -Filter RobloxStudioBeta.exe -ErrorAction SilentlyContinue | Select-Object -First 1;" ^
   "if ($studio) { $link.IconLocation=$studio.FullName + ',0' };" ^
   "$link.Save();" ^
+  "$made=Join-Path $desktop ($name + '.lnk');" ^
+  "if (Test-Path $made) { Write-Host ('[OK] Desktop shortcut: ' + $made) } else { Write-Host ('[FAIL] No shortcut at ' + $made); exit 1 };" ^
   "foreach ($old in @(($name + '.bat'), 'Flick Flock.lnk')) { $path=Join-Path $desktop $old; if (Test-Path $path) { Remove-Item $path } }"
-if errorlevel 1 echo [WARN] Could not create the desktop shortcut.
+if errorlevel 1 (
+    echo [WARN] Could not create the desktop shortcut. Please send this screen.
+    pause
+)
 
 set "ROJO_DIR=%REPO%\tools\rojo-%ROJO_VERSION%"
 set "ROJO=%ROJO_DIR%\rojo.exe"
