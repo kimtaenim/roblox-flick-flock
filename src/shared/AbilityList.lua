@@ -6,8 +6,7 @@ local AbilityList = {
 	{ Id = "Clone", Name = "분신", Icon = "👯", Help = "옆에 0.5 알 2개가 생겨요" },
 	{ Id = "Giant", Name = "거대화", Icon = "🦖", Help = "내 알이 2배로 커져요" },
 	{ Id = "Teleport", Name = "텔레포트", Icon = "✨", Help = "내 알이 판 가운데로 순간이동" },
-	{ Id = "Magnet", Name = "자석", Icon = "🧲", Help = "바닥에 딱 붙어서 안 밀려요" },
-	{ Id = "Poop", Name = "똥알", Icon = "💩", Help = "밟으면 미끌… 아니 물컹!" },
+	{ Id = "Magnet", Name = "자석", Icon = "🧲", Help = "바닥에 딱 붙어요. 나도 상대도 못 움직여요" },
 	{ Id = "Ghost", Name = "유령", Icon = "👻", Help = "다른 알을 스르륵 통과해요" },
 }
 

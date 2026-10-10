@@ -1,4 +1,5 @@
--- 자석 : 바닥에 붙어 안 밀림 (내 턴 + 상대 턴). 때린 알은 딱딱하게 되튕김.
+-- 자석 : 바닥에 딱 붙는다. 상대 턴과 내 다음 턴 동안 나도 상대도 못 움직임 (Config.EffectTurns.Magnet).
+-- 때린 알은 딱딱하게 되튕김.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 

@@ -65,7 +65,7 @@ Config.PresetTeams = {
 	{
 		Name = "마법팀",
 		Description = "신기한 능력이 가득",
-		Pieces = { { "Flat" }, { "Flat", "Teleport" }, { "Round", "Ghost" }, { "Flat", "Poop" } },
+		Pieces = { { "Flat" }, { "Flat", "Teleport" }, { "Round", "Ghost" }, { "Flat", "Summon" } },
 	},
 }
 
@@ -88,9 +88,9 @@ Config.ExplosionKingDamage = 30 -- 가운데에서 왕알이 받는 데미지 (�
 Config.ExplosionWallHeight = 6 -- 폭발 턴에 판 가장자리에 세우는 안 보이는 벽 높이
 Config.GiantScale = 2 -- 거대화 배율 (크기·질량)
 Config.MagnetElasticity = 1 -- 자석 알에 부딪히면 되튕기는 정도
-Config.PoopSlowFactor = 0.35 -- 똥을 밟으면 속도가 이만큼으로 줄어듦
-Config.FootprintTime = 4 -- 똥 발자국이 남는 시간 (초)
-Config.EffectTurns = 2 -- 자석·똥·유령 유지 : 2 = 능력 쓴 내 턴이 끝나고 상대 턴 한 번 동안
+-- 효과가 유지되는 턴 수 (능력을 쓴 내 턴도 1로 센다)
+-- 유령 2 = 상대 턴 한 번 동안 / 자석 3 = 상대 턴 + 내 다음 턴 동안 (그동안 나도 상대도 못 움직임)
+Config.EffectTurns = { Ghost = 2, Magnet = 3 }
 -- 소환 확률 (합이 100)
 Config.SummonTable = {
 	{ Name = "꽝", Chance = 60, Result = "Half" },
@@ -128,7 +128,6 @@ local OOF = "rbxasset://sounds/uuhhh.mp3" -- "웁!"
 local JUMP = "rbxasset://sounds/action_jump.mp3" -- 뿅
 local LAND = "rbxasset://sounds/action_jump_land.mp3" -- 쿵
 local FALL = "rbxasset://sounds/action_falling.ogg" -- 휘이잉
-local SPLASH = "rbxasset://sounds/impact_water.mp3" -- 첨벙
 local SWIM = "rbxasset://sounds/action_swim.mp3" -- 슈욱
 local STEP = "rbxasset://sounds/action_footsteps_plastic.mp3" -- 톡톡
 local GETUP = "rbxasset://sounds/action_get_up.mp3" -- 으쌰
@@ -148,8 +147,6 @@ Config.Sounds = {
 	Teleport = { Id = SWIM, Pitch = { 2.2, 2.4 } },
 	Ghost = { Id = SWIM, Pitch = { 0.5, 0.55 } },
 	Magnet = { Id = STEP, Pitch = { 0.4, 0.5 }, Volume = 1 },
-	Poop = { Id = SPLASH, Pitch = { 0.5, 0.55 }, Volume = 1 }, -- 뿌직
-	PoopStep = { Id = SPLASH, Pitch = { 0.75, 0.9 } }, -- 똥 밟음
 	Summon = { Id = JUMP, Pitch = { 1.6, 1.7 } },
 	Clone = { Id = JUMP, Pitch = { 1.9, 2.1 } },
 }

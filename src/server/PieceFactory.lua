@@ -64,7 +64,7 @@ function PieceFactory.bodyParts(piece: BasePart): { BasePart }
 	return { piece }
 end
 
--- 알 전체 투명도 (유령·똥알에서 씀). 0 = 보통, 1 = 안 보임
+-- 알 전체 투명도 (유령에서 씀). 0 = 보통, 1 = 안 보임
 function PieceFactory.setTransparency(piece: BasePart, transparency: number)
 	piece.Transparency = if isRound(piece) then 1 else transparency
 	local look = piece:FindFirstChild("Look")

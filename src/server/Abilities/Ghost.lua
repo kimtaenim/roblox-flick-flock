@@ -1,4 +1,4 @@
--- 유령 : 내 턴 + 상대 턴 동안 다른 알을 통과 (판은 안 통과)
+-- 유령 : 상대 턴 한 번 동안 다른 알을 통과 (판은 안 통과)
 local Ability = {}
 
 function Ability.Execute(piece: BasePart, context)
