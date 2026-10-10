@@ -16,14 +16,17 @@ local player = Players.LocalPlayer
 local state = Remotes.State
 
 -- 이번 판에 한 팀이 놓을 수 있는 알 개수 (판 크기·팀 수에 따라)
-local function currentCapacity(): number
-	local setup = BoardShape.makeSetup(
+local function currentSetup()
+	return BoardShape.makeSetup(
 		Config,
 		state:GetAttribute("BoardSizeKey") or Config.DefaultBoardSize,
 		state:GetAttribute("FloorKey") or Config.DefaultFloor,
 		state:GetAttribute("TeamCount") or 2
 	)
-	return TeamLayout.capacity(setup.layout)
+end
+
+local function currentCapacity(): number
+	return TeamLayout.capacity(currentSetup().layout)
 end
 
 local CARD_COLOR = Color3.fromRGB(255, 248, 230)
@@ -116,7 +119,7 @@ local presetCards: { [number]: TextButton } = {}
 for index, preset in Config.PresetTeams do
 	local card = makeButton(presetPage, "", UDim2.new(), UDim2.new())
 	card.LayoutOrder = index
-	card.Text = preset.Name .. "\n" .. preset.Description .. "\n" .. describePieces(preset.Pieces)
+	card.Text = preset.Name .. "\n" .. preset.Description
 	card.Activated:Connect(function()
 		Remotes.SelectTeam:FireServer(index)
 	end)
@@ -163,7 +166,8 @@ local function refreshCustom()
 	for name, label in countLabels do
 		label.Text = tostring(counts[name])
 	end
-	budgetLabel.Text = string.format("남은 예산 %d / %d  (왕알은 공짜)", Config.Budget - spent(), Config.Budget)
+	local budget = currentSetup().budget
+	budgetLabel.Text = string.format("남은 예산 %d / %d  (왕알은 공짜)", budget - spent(), budget)
 	confirmButton.AutoButtonColor = totalPieces() > 0
 	confirmButton.BackgroundTransparency = if totalPieces() > 0 then 0 else 0.5
 end
@@ -181,7 +185,7 @@ for index, name in rows do
 	end)
 	plus.Activated:Connect(function()
 		local maxPieces = currentCapacity()
-		if spent() + Config.Prices[name] <= Config.Budget and totalPieces() < maxPieces then
+		if spent() + Config.Prices[name] <= currentSetup().budget and totalPieces() < maxPieces then
 			counts[name] += 1
 			refreshCustom()
 		end
@@ -272,7 +276,10 @@ local function makeRow(rowName: string, label: string, y: number, entries: { { t
 			UDim2.new(1 / count, -10 - 100 / count, 0, 60),
 			UDim2.new((index - 1) / count, 100 - (index - 1) * 100 / count + 5, 0, y)
 		)
-		button.TextSize = 22
+		button.TextScaled = true
+		local limit = Instance.new("UITextSizeConstraint")
+		limit.MaxTextSize = 22
+		limit.Parent = button
 		table.insert(modeRows[rowName], { button = button, value = entry.value })
 		button.Activated:Connect(function()
 			if rowName == "size" and not BoardShape.allowed(Config, entry.value, mode.teams) then
@@ -293,7 +300,10 @@ makeRow("teams", "팀 수", 60, teamEntries)
 local sizeEntries = {}
 for _, key in sortedKeys(Config.BoardSizes) do
 	local info = Config.BoardSizes[key]
-	table.insert(sizeEntries, { text = info.Name .. (if info.TwoTeamsOnly then "\n(2팀만)" else ""), value = key })
+	table.insert(sizeEntries, {
+		text = (if info.Icon then info.Icon .. " " else "") .. info.Name .. (if info.TwoTeamsOnly then "\n(2팀만)" else ""),
+		value = key,
+	})
 end
 makeRow("size", "판", 135, sizeEntries)
 
@@ -338,8 +348,11 @@ local function refresh()
 		title.TextColor3 = Config.Teams[team].Color
 		-- 3·4팀은 자리가 좁아서 알이 너무 많은 추천 팀은 못 고른다
 		local capacity = currentCapacity()
+		local setup = currentSetup()
 		for index, card in presetCards do
-			local fits = #Config.PresetTeams[index].Pieces <= capacity
+			local preset = Config.PresetTeams[index]
+			card.Text = preset.Name .. "\n" .. preset.Description .. "\n" .. describePieces(BoardShape.adaptPreset(Config, setup, preset.Pieces))
+			local fits = #BoardShape.adaptPreset(Config, setup, preset.Pieces) <= capacity
 			card.Active = fits
 			card.AutoButtonColor = fits
 			card.BackgroundTransparency = if fits then 0 else 0.6
@@ -347,7 +360,7 @@ local function refresh()
 	end
 end
 
-local watched = { "Phase", "TeamCount", "HostUserId", "BoardSizeKey" }
+local watched = { "Phase", "TeamCount", "HostUserId", "BoardSizeKey", "FloorKey" }
 for watchTeam = 1, #Config.Teams do
 	table.insert(watched, "Team" .. watchTeam .. "Ready")
 	table.insert(watched, "Team" .. watchTeam .. "Owner")

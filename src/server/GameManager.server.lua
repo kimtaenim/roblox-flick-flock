@@ -542,12 +542,9 @@ local function randomAbilityId(): string
 	return list[random:NextInteger(1, #list)].Id
 end
 
+-- 추천 팀 알 목록 (이번 판 크기에 맞게 늘이거나 줄여서)
 local function copyPreset(index: number): { { string } }
-	local list = {}
-	for _, entry in Config.PresetTeams[index].Pieces do
-		table.insert(list, { entry[1], entry[2] })
-	end
-	return list
+	return BoardShape.adaptPreset(Config, Board.setup, Config.PresetTeams[index].Pieces)
 end
 
 -- 직접 고른 팀 { Flat = n, Round = n, Half = n, Ability = n } → 알 목록 (예산 넘으면 nil)
@@ -570,7 +567,7 @@ local function buildCustomTeam(choice: any): { { string } }?
 		cost += count * price
 	end
 	local capacity = TeamLayout.capacity(Board.setup.layout)
-	if total < 1 or cost > Config.Budget or total > capacity then
+	if total < 1 or cost > Board.setup.budget or total > capacity then
 		return nil
 	end
 	local list = {}
@@ -596,8 +593,9 @@ end
 
 -- 추천 팀이 자리에 다 들어가는지 (3·4팀은 한 팀 8개까지)
 local function presetFits(index: number): boolean
+	-- 추천 팀은 판에 맞게 줄여서 쓰므로 언제나 들어간다
 	local capacity = TeamLayout.capacity(Board.setup.layout)
-	return #Config.PresetTeams[index].Pieces <= capacity
+	return #copyPreset(index) <= capacity
 end
 
 Remotes.SelectTeam.OnServerEvent:Connect(function(player, choice)

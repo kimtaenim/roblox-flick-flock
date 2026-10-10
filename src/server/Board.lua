@@ -81,6 +81,157 @@ local function makeLava(radius: number, parent: Instance)
 	light.Parent = lava
 end
 
+---------------------------------------------------------------- 무늬
+
+local PATTERN_Y = Config.BoardHeight + 0.02
+
+-- (x1,z1)→(x2,z2) 선을 판 위에 있는 부분만 그린다 (판 모양 밖·구멍은 건너뜀)
+local function drawClippedLine(x1: number, z1: number, x2: number, z2: number, width: number, color: Color3, parent: Instance)
+	local length = math.sqrt((x2 - x1) ^ 2 + (z2 - z1) ^ 2)
+	if length < 0.01 then
+		return
+	end
+	local dx, dz = (x2 - x1) / length, (z2 - z1) / length
+	local step = 0.5
+	local spanStart: number? = nil
+	local t = 0
+	local function finish(spanEnd: number)
+		local from = spanStart :: number
+		if spanEnd - from > 0.3 then
+			local middle = (from + spanEnd) / 2
+			local center = Vector3.new(x1 + dx * middle, PATTERN_Y, z1 + dz * middle)
+			local direction = Vector3.new(dx, 0, dz)
+			makeDecal("PatternLine", Vector3.new(width, 0.04, spanEnd - from), CFrame.lookAt(center, center + direction), color, parent)
+		end
+		spanStart = nil
+	end
+	while t <= length do
+		local inside = BoardShape.inside(Board.shape, x1 + dx * t, z1 + dz * t, 0.3)
+		if inside and not spanStart then
+			spanStart = t
+		elseif not inside and spanStart then
+			finish(t - step)
+		end
+		t += step
+	end
+	if spanStart then
+		finish(length)
+	end
+end
+
+local function drawPattern(parent: Instance)
+	local floor = floorInfo()
+	if not floor.Pattern then
+		return
+	end
+	local folder = Instance.new("Folder")
+	folder.Name = "Pattern"
+	folder.Parent = parent
+	local color = floor.PatternColor
+	-- 무늬를 그리는 네모 : 사각형 판은 판 전체, 다른 모양은 판을 감싸는 크기
+	local half = if Board.shape.kind == "Square" then Board.shape.size / 2 else Board.shape.reach
+	if floor.Pattern == "Chess" then
+		local cells = floor.Cells
+		local cell = half * 2 / cells
+		for column = 0, cells - 1 do
+			for row = 0, cells - 1 do
+				if (column + row) % 2 == 1 then
+					local x = -half + (column + 0.5) * cell
+					local z = -half + (row + 0.5) * cell
+					-- 칸 네 모서리가 다 판 위일 때만
+					local h = cell / 2
+					local ok = BoardShape.inside(Board.shape, x - h, z - h)
+						and BoardShape.inside(Board.shape, x + h, z - h)
+						and BoardShape.inside(Board.shape, x - h, z + h)
+						and BoardShape.inside(Board.shape, x + h, z + h)
+					if ok then
+						makeDecal("Square", Vector3.new(cell, 0.04, cell), CFrame.new(x, PATTERN_Y, z), color, folder)
+					end
+				end
+			end
+		end
+		return
+	end
+
+	-- 장기판·바둑판 : 줄 긋기 (가장자리에서 조금 안쪽부터)
+	local inner = half * 0.92
+	local columns, rows = floor.Lines[1], floor.Lines[2]
+	local gapX = inner * 2 / (columns - 1)
+	local gapZ = inner * 2 / (rows - 1)
+	for column = 0, columns - 1 do
+		local x = -inner + column * gapX
+		drawClippedLine(x, -inner, x, inner, 0.2, color, folder)
+	end
+	for row = 0, rows - 1 do
+		local z = -inner + row * gapZ
+		drawClippedLine(-inner, z, inner, z, 0.2, color, folder)
+	end
+
+	if floor.Pattern == "Janggi" then
+		-- 궁 : 양쪽 끝 가운데 3×3 칸에 X 자
+		for _, sign in { -1, 1 } do
+			local zEdge = sign * inner
+			local zInner = sign * (inner - 2 * gapZ)
+			drawClippedLine(-gapX, zEdge, gapX, zInner, 0.2, color, folder)
+			drawClippedLine(gapX, zEdge, -gapX, zInner, 0.2, color, folder)
+		end
+	elseif floor.Pattern == "Baduk" then
+		-- 화점 : 4·10·16 번째 줄이 만나는 9 곳
+		for _, column in { 3, 9, 15 } do
+			for _, row in { 3, 9, 15 } do
+				local x = -inner + column * gapX
+				local z = -inner + row * gapZ
+				if BoardShape.inside(Board.shape, x, z, 0.6) then
+					makeDecal(
+						"Star",
+						Vector3.new(0.05, 1.1, 1.1),
+						CFrame.new(x, PATTERN_Y + 0.01, z) * CFrame.Angles(0, 0, math.rad(90)),
+						color,
+						folder,
+						Enum.PartType.Cylinder
+					)
+				end
+			end
+		end
+	end
+end
+
+-- 곰돌이 얼굴 : 귀 안쪽, 눈, 코, 입 (밟고 지나갈 수 있는 그림)
+local function drawBearFace(parent: Instance)
+	local circles = Board.shape.circles
+	if not circles then
+		return
+	end
+	local face = circles[1]
+	local folder = Instance.new("Folder")
+	folder.Name = "BearFace"
+	folder.Parent = parent
+	local y = PATTERN_Y + 0.01
+	local function disc(name: string, x: number, z: number, radius: number, color: Color3)
+		makeDecal(
+			name,
+			Vector3.new(0.05, radius * 2, radius * 2),
+			CFrame.new(x, y, z) * CFrame.Angles(0, 0, math.rad(90)),
+			color,
+			folder,
+			Enum.PartType.Cylinder
+		)
+	end
+	-- 귀 안쪽 (분홍)
+	for index = 2, #circles do
+		local ear = circles[index]
+		disc("EarInside", ear.x, ear.z, ear.r * 0.55, Color3.fromRGB(240, 170, 170))
+	end
+	-- 얼굴은 귀 쪽(+X)이 위. 눈·코·입은 얼굴 가운데 둘레에 크게 (알이 다닐 자리를 덜 가리게 얇게)
+	local r = face.r
+	disc("EyeLeft", face.x + r * 0.35, face.z + r * 0.35, r * 0.09, Color3.fromRGB(50, 35, 25))
+	disc("EyeRight", face.x + r * 0.35, face.z - r * 0.35, r * 0.09, Color3.fromRGB(50, 35, 25))
+	disc("Muzzle", face.x - r * 0.25, face.z, r * 0.3, Color3.fromRGB(235, 205, 160))
+	disc("Nose", face.x - r * 0.12, face.z, r * 0.1, Color3.fromRGB(50, 35, 25))
+	disc("Cheek1", face.x - r * 0.1, face.z + r * 0.6, r * 0.12, Color3.fromRGB(245, 160, 150))
+	disc("Cheek2", face.x - r * 0.1, face.z - r * 0.6, r * 0.12, Color3.fromRGB(245, 160, 150))
+end
+
 function Board.build(teamCount: number, sizeKey: string?, floorKey: string?): Model
 	local old = workspace:FindFirstChild("Board")
 	if old then
@@ -101,8 +252,8 @@ function Board.build(teamCount: number, sizeKey: string?, floorKey: string?): Mo
 			local cframe = CFrame.new(0, y, 0) * CFrame.Angles(0, math.rad(index * 60), 0)
 			makeSlab("Slab" .. index, Vector3.new(side, Config.BoardThickness, size), cframe, board)
 		end
-	elseif shape.kind == "Gourd" then
-		-- 둥근 판 두 개를 겹쳐 놓으면 가운데가 잘록한 호리병
+	elseif shape.kind == "Circles" then
+		-- 둥근 판 여러 개를 겹쳐 놓는다 (호리병, 곰돌이 얼굴 + 귀)
 		for index, circle in shape.circles :: { BoardShape.Circle } do
 			local cframe = CFrame.new(circle.x, y, circle.z) * CFrame.Angles(0, 0, math.rad(90))
 			makeSlab("Lobe" .. index, Vector3.new(Config.BoardThickness, circle.r * 2, circle.r * 2), cframe, board, Enum.PartType.Cylinder)
@@ -111,6 +262,10 @@ function Board.build(teamCount: number, sizeKey: string?, floorKey: string?): Mo
 		makeSlab("Slab", Vector3.new(size, Config.BoardThickness, size), CFrame.new(0, y, 0), board)
 	end
 
+	drawPattern(board)
+	if Config.BoardSizes[Board.setup.sizeKey].Face then
+		drawBearFace(board)
+	end
 	if shape.holeRadius > 0 then
 		makeLava(shape.holeRadius, board)
 	end

@@ -15,7 +15,7 @@ local BoardShape = require("../src/shared/BoardShape")
 local setup = BoardShape.makeSetup(Config, "Normal", "Wood", 2)
 local GRAVITY = 196.2
 local DT = 1 / 240
-local MAX_TURNS = 120
+local MAX_TURNS = 300
 
 -- Roblox Random 대신 쓰는 간단한 난수
 local function makeRandom(seed: number)
@@ -170,7 +170,8 @@ local function playGame(seed: number, presets: { number }, sizeKey: string?, flo
 	setup = BoardShape.makeSetup(Config, sizeKey or "Normal", floorKey or "Wood", teamCount)
 	local pieces = {}
 	for team, preset in presets do
-		layoutTeam(team, teamCount, Config.PresetTeams[preset].Pieces, pieces)
+		-- GameManager.copyPreset 처럼 판 크기에 맞게 늘이거나 줄인 추천 팀
+		layoutTeam(team, teamCount, BoardShape.adaptPreset(Config, setup, Config.PresetTeams[preset].Pieces), pieces)
 	end
 
 	-- 시작 배치가 겹치거나 판 밖이면 안 된다
@@ -319,15 +320,16 @@ end
 
 -- 판 종류마다 : 크기·모양 × 바닥 × 팀 수 (시작 배치가 판 위에 있고 겹치지 않는지, 판이 끝나는지)
 print("판 종류별 (각 20판, 추천 팀 무작위)")
-local sizeKeys = { "Normal", "Small", "Large", "Gourd" }
-local floorKeys = { "Wood", "Ice", "Volcano" }
+local sizeKeys = { "Normal", "Small", "Large", "Gourd", "Bear" }
+local floorKeys = { "Wood", "Ice", "Volcano", "Chess", "Janggi", "Baduk" }
 for _, sizeKey in sizeKeys do
 	for teamCount = 2, 4 do
 		if BoardShape.allowed(Config, sizeKey, teamCount) then
 			local line = {}
 			for _, floorKey in floorKeys do
 				local turnsSum, draws = 0, 0
-				local capacity = TeamLayout.capacity(BoardShape.makeSetup(Config, sizeKey, floorKey, teamCount).layout)
+				local boardSetup = BoardShape.makeSetup(Config, sizeKey, floorKey, teamCount)
+				local capacity = TeamLayout.capacity(boardSetup.layout)
 				for seed = 1, 20 do
 					local rng = makeRandom(seed * 7177 + teamCount)
 					local presets = {}
@@ -336,7 +338,7 @@ for _, sizeKey in sizeKeys do
 						local pick
 						repeat
 							pick = rng:NextInteger(1, presetCount)
-						until #Config.PresetTeams[pick].Pieces <= capacity
+						until #BoardShape.adaptPreset(Config, boardSetup, Config.PresetTeams[pick].Pieces) <= capacity
 						presets[team] = pick
 					end
 					local turns, winner = playGame(seed * 13 + teamCount, presets, sizeKey, floorKey)
@@ -349,7 +351,13 @@ for _, sizeKey in sizeKeys do
 				end
 				table.insert(line, string.format("%s %.0f턴(무%d)", Config.Floors[floorKey].Name, turnsSum / 20, draws))
 			end
-			print(string.format("  %s %d팀 : %s", Config.BoardSizes[sizeKey].Name, teamCount, table.concat(line, " · ")))
+			-- 이 판에서 추천 팀 알 개수 (수비팀·돌격팀·꼬마군단·마법팀)
+			local counts = {}
+			local countSetup = BoardShape.makeSetup(Config, sizeKey, "Wood", teamCount)
+			for _, preset in Config.PresetTeams do
+				table.insert(counts, tostring(#BoardShape.adaptPreset(Config, countSetup, preset.Pieces)))
+			end
+			print(string.format("  %s %d팀 [알 %s] : %s", Config.BoardSizes[sizeKey].Name, teamCount, table.concat(counts, "/"), table.concat(line, " · ")))
 		end
 	end
 end

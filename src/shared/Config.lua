@@ -7,7 +7,8 @@ Config.BoardHeight = 6 -- 판 윗면 높이
 Config.FallDepth = 3 -- 판 윗면보다 이만큼 아래로 떨어지면 탈락
 
 -- 판 크기·모양 : 방장이 판 시작 전에 고른다
--- Size = 판 크기 (마주 보는 두 변 사이 거리). Shape "Auto" = 3팀은 육각형, 2·4팀은 사각형
+-- Size = 판 크기 (마주 보는 두 변 사이 거리). Shape "Auto" = 3팀은 육각형, 2·4팀은 사각형 / "Circles" = 원들을 합친 모양
+-- Budget = 이 판에서 팀 예산 (작은 판은 알이 적게, 큰 판은 많게). 추천 팀도 이 비율로 알 수가 늘고 준다
 -- Two / Many = 2팀 / 3·4팀일 때 팀 배치 (판 가운데에서 왕알·알 줄까지 거리, 한 줄에 몇 개, 간격)
 Config.BoardSizes = {
 	Normal = {
@@ -15,6 +16,7 @@ Config.BoardSizes = {
 		Order = 1,
 		Size = 64,
 		Shape = "Auto",
+		Budget = 12,
 		Two = { KingDistance = 22, Rows = { 9, 14 }, PerRow = 7, Spacing = 6 },
 		Many = { KingDistance = 26, Rows = { 14, 19 }, PerRow = 4, Spacing = 5 },
 	},
@@ -23,6 +25,7 @@ Config.BoardSizes = {
 		Order = 2,
 		Size = 48,
 		Shape = "Auto",
+		Budget = 8,
 		Two = { KingDistance = 17, Rows = { 6, 11 }, PerRow = 6, Spacing = 5.5 },
 		Many = { KingDistance = 19.5, Rows = { 8.5, 13 }, PerRow = 3, Spacing = 5 },
 	},
@@ -31,21 +34,39 @@ Config.BoardSizes = {
 		Order = 3,
 		Size = 84,
 		Shape = "Auto",
-		Two = { KingDistance = 32, Rows = { 12, 18 }, PerRow = 7, Spacing = 6.5 },
-		Many = { KingDistance = 35, Rows = { 18, 24 }, PerRow = 4, Spacing = 5.5 },
+		Budget = 18,
+		Two = { KingDistance = 32, Rows = { 12, 18 }, PerRow = 9, Spacing = 6 },
+		Many = { KingDistance = 35, Rows = { 18, 23, 28 }, PerRow = 4, Spacing = 5.5 },
 	},
 	Gourd = {
 		Name = "호리병 판",
 		Order = 4,
 		Size = 64,
-		Shape = "Gourd", -- 원 두 개를 이은 바이올린 몸통 모양 (팀은 양쪽 둥근 곳에)
+		-- 원 두 개를 이은 바이올린 몸통 모양 (팀은 양쪽 둥근 곳에). { x, z, 반지름 }
+		Shape = "Circles",
+		Circles = { { 0, 18, 24 }, { 0, -18, 24 } },
+		Budget = 12,
 		TwoTeamsOnly = true,
 		Two = { KingDistance = 34, Rows = { 16, 22 }, PerRow = 7, Spacing = 6 },
+	},
+	Bear = {
+		Name = "곰돌이 판",
+		Icon = "🐻",
+		Order = 5,
+		Size = 64,
+		-- 둥근 얼굴 + 귀 두 개 (귀는 옆쪽 +X 에). 귀까지 밀려가도 귀 위에 있으면 살아남는다
+		Shape = "Circles",
+		Circles = { { 0, 0, 30 }, { 27, 20, 11 }, { 27, -20, 11 } },
+		Face = true, -- 눈·코·입·귀 안쪽 그리기
+		Budget = 12,
+		TwoTeamsOnly = true,
+		Two = { KingDistance = 22, Rows = { 9, 14 }, PerRow = 7, Spacing = 6 },
 	},
 }
 Config.DefaultBoardSize = "Normal"
 
 -- 바닥 : 방장이 고른다. Friction 이 작을수록 미끄러움, FrictionWeight 가 크면 알 마찰보다 바닥 마찰을 따른다
+-- Pattern = 판 위 무늬 ("Chess" 체스판 칸, "Janggi" 장기판 줄·궁, "Baduk" 바둑판 줄·화점)
 Config.Floors = {
 	Wood = { Name = "나무", Order = 1, Friction = 0.3, Color = Color3.fromRGB(196, 154, 108), Material = "Wood" },
 	Ice = {
@@ -76,6 +97,41 @@ Config.Floors = {
 		BumpCount = 14, -- 혹 개수
 		BumpRadius = 2.2,
 		BumpHeight = 0.7, -- 판 위로 솟은 높이
+	},
+	Chess = {
+		Name = "체스판",
+		Icon = "♟",
+		Order = 5,
+		Friction = 0.22, -- 반들반들해서 조금 더 미끄러움
+		FrictionWeight = 3,
+		Color = Color3.fromRGB(238, 218, 181),
+		Material = "SmoothPlastic",
+		Pattern = "Chess",
+		PatternColor = Color3.fromRGB(150, 105, 70),
+		Cells = 8, -- 8 × 8 칸
+	},
+	Janggi = {
+		Name = "장기판",
+		Icon = "🀄",
+		Order = 6,
+		Friction = 0.3,
+		Color = Color3.fromRGB(232, 190, 120),
+		Material = "Wood",
+		Pattern = "Janggi",
+		PatternColor = Color3.fromRGB(90, 50, 25),
+		Lines = { 9, 10 }, -- 세로 9줄, 가로 10줄
+	},
+	Baduk = {
+		Name = "바둑판",
+		Icon = "⚫",
+		Order = 7,
+		Friction = 0.38, -- 나무결이 거칠어서 덜 미끄러움
+		FrictionWeight = 3,
+		Color = Color3.fromRGB(222, 180, 105),
+		Material = "Wood",
+		Pattern = "Baduk",
+		PatternColor = Color3.fromRGB(40, 30, 20),
+		Lines = { 19, 19 },
 	},
 }
 Config.DefaultFloor = "Wood"
@@ -118,7 +174,7 @@ Config.ModeSelectTime = 20 -- 방장이 모드(2·3·4팀) 고르는 시간 (초
 
 
 -- 팀 선택 (예산제)
-Config.Budget = 12
+Config.Budget = 12 -- 보통 판 예산 (판마다 다른 예산은 Config.BoardSizes 의 Budget)
 Config.Prices = { Flat = 2, Round = 2, Ability = 3, Half = 1 }
 Config.TeamSelectTime = 40 -- 이 시간 안에 안 고르면 첫 번째 추천 팀 (초)
 -- 추천 팀 : 알 목록. { kind, ability } — ability 가 있으면 능력 알

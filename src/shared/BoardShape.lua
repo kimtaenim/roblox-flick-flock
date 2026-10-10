@@ -1,5 +1,5 @@
 -- 판 모양 계산 (숫자만 써서 Studio 없이도 테스트할 수 있다)
--- 모양 : "Square" 사각형 / "Hexagon" 육각형 / "Gourd" 호리병(원 두 개를 이은 모양)
+-- 모양 : "Square" 사각형 / "Hexagon" 육각형 / "Circles" 원 여러 개를 합친 모양 (호리병, 곰돌이 얼굴)
 -- 가운데 구멍(화산)도 있을 수 있다 : 구멍 안은 판 밖과 같다.
 local BoardShape = {}
 
@@ -9,21 +9,21 @@ export type Shape = {
 	kind: string,
 	size: number,
 	edges: { Edge }?, -- 사각형·육각형 : 마주 보는 평평한 변 묶음
-	circles: { Circle }?, -- 호리병 : 원들을 합친 모양
+	circles: { Circle }?, -- 원들을 합친 모양 (호리병·곰돌이)
 	holeRadius: number, -- 가운데 구멍 반지름 (0 = 구멍 없음)
 	reach: number, -- 판 가운데에서 가장 먼 곳까지 거리
 }
 
 -- 팀 수에 맞는 기본 모양 (3팀은 육각형, 2·4팀은 사각형)
 function BoardShape.pick(setting: string, teamCount: number): string
-	if setting == "Square" or setting == "Hexagon" or setting == "Gourd" then
+	if setting == "Square" or setting == "Hexagon" or setting == "Circles" then
 		return setting
 	end
 	return if teamCount == 3 then "Hexagon" else "Square"
 end
 
--- size : 사각형·육각형은 마주 보는 변 사이 거리, 호리병은 폭의 기준
-function BoardShape.create(kind: string, size: number, holeRadius: number?): Shape
+-- size : 사각형·육각형은 마주 보는 변 사이 거리. circles : "Circles" 일 때 { { x, z, 반지름 }, ... }
+function BoardShape.create(kind: string, size: number, holeRadius: number?, circles: { { number } }?): Shape
 	local half = size / 2
 	local shape: Shape = { kind = kind, size = size, holeRadius = holeRadius or 0, reach = half }
 	if kind == "Hexagon" then
@@ -36,12 +36,17 @@ function BoardShape.create(kind: string, size: number, holeRadius: number?): Sha
 		end
 		shape.edges = edges
 		shape.reach = side
-	elseif kind == "Gourd" then
-		-- 호리병 (바이올린 몸통) : 같은 크기 원 두 개를 Z 방향으로 겹쳐 놓는다. 가운데가 잘록하다.
-		local radius = size * 0.375
-		local offset = size * 0.28
-		shape.circles = { { x = 0, z = offset, r = radius }, { x = 0, z = -offset, r = radius } }
-		shape.reach = offset + radius
+	elseif kind == "Circles" then
+		-- 원 여러 개를 겹쳐 놓은 모양. 호리병 = 같은 원 두 개, 곰돌이 = 얼굴 + 귀 두 개
+		local list = {}
+		local reach = 0
+		local source: { { number } } = circles or { { 0, 0, half } }
+		for _, entry in source do
+			table.insert(list, { x = entry[1], z = entry[2], r = entry[3] })
+			reach = math.max(reach, math.sqrt(entry[1] ^ 2 + entry[2] ^ 2) + entry[3])
+		end
+		shape.circles = list
+		shape.reach = reach
 	else
 		shape.edges = {
 			{ nx = 1, nz = 0, half = half, length = size },
@@ -169,6 +174,7 @@ export type Setup = {
 	layout: { KingDistance: number, Rows: { number }, PerRow: number, Spacing: number },
 	friction: number,
 	frictionWeight: number,
+	budget: number, -- 이 판의 팀 예산
 }
 
 -- 이 판 크기를 이 팀 수로 쓸 수 있는지 (호리병은 2팀만)
@@ -198,11 +204,53 @@ function BoardShape.makeSetup(config, sizeKey: string, floorKey: string, teamCou
 		sizeKey = sizeKey,
 		floorKey = floorKey,
 		teamCount = teamCount,
-		shape = BoardShape.create(kind, size.Size, holeRadius),
+		shape = BoardShape.create(kind, size.Size, holeRadius, size.Circles),
 		layout = layout,
 		friction = floor.Friction,
 		frictionWeight = floor.FrictionWeight or 1,
+		budget = size.Budget or config.Budget,
 	}
+end
+
+-- 추천 팀을 이 판 크기에 맞게 : 작은 판은 알을 빼고, 큰 판은 보통 알을 더 넣는다 (예산 비율만큼)
+-- pieces : { { kind, ability? }, ... } → 새 목록
+function BoardShape.adaptPreset(config, setup: Setup, pieces: { { string } }): { { string } }
+	local capacity = setup.layout.PerRow * #setup.layout.Rows
+	local target = math.floor(#pieces * setup.budget / config.Budget + 0.5)
+	target = math.clamp(target, 1, capacity)
+	local list = {}
+	for _, entry in pieces do
+		table.insert(list, { entry[1], entry[2] })
+	end
+	-- 줄일 때 : 뒤에서부터 보통 알을 먼저 뺀다 (능력 알은 되도록 남긴다)
+	local index = #list
+	while #list > target and index >= 1 do
+		if list[index][2] == nil then
+			table.remove(list, index)
+		end
+		index -= 1
+	end
+	while #list > target do
+		table.remove(list)
+	end
+	-- 늘릴 때 : 이 팀의 보통 알 종류를 돌아가며 더 넣는다
+	if #list < target then
+		local basics = {}
+		for _, entry in pieces do
+			if entry[2] == nil then
+				table.insert(basics, entry[1])
+			end
+		end
+		if #basics == 0 then
+			basics = { "Flat" }
+		end
+		local next = 1
+		while #list < target do
+			table.insert(list, { basics[next] })
+			next = next % #basics + 1
+		end
+	end
+	return list
 end
 
 -- 알이 이 바닥에서 미끄러질 때 초당 줄어드는 속도 (로블록스는 무게를 단 평균 마찰을 쓴다)
