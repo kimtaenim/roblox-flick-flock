@@ -802,6 +802,20 @@ local function cheer(winner: number)
 	end
 end
 
+-- 먼저 칠 팀 : NPC 가 있으면 NPC 부터, 사람은 마지막 (Config.PlayerGoesLast). 사람끼리면 무작위.
+-- 사람은 앞 번호 팀을 맡으므로, 사람 바로 다음 자리의 NPC 부터 시작하면 사람이 마지막이 된다.
+local function pickFirstTeam(): number
+	if Config.PlayerGoesLast then
+		for team = 1, teamCount do
+			local previous = (team - 2) % teamCount + 1
+			if teamOwners[team] == "Npc" and teamOwners[previous] ~= "Npc" then
+				return team
+			end
+		end
+	end
+	return random:NextInteger(1, teamCount)
+end
+
 local function playRound()
 	runModeSelect()
 	if restartRequested then
@@ -835,8 +849,7 @@ local function playRound()
 	end
 	state:SetAttribute("Winner", 0)
 	state:SetAttribute("WinReason", "")
-	-- 먼저 치는 팀은 판마다 무작위 (늦게 치는 팀이 유리해지지 않게)
-	local firstTeam = random:NextInteger(1, teamCount)
+	local firstTeam = pickFirstTeam()
 	state:SetAttribute("CurrentTeam", firstTeam)
 	Effects.banner(Config.Teams[firstTeam].Name .. " 먼저!", Config.Teams[firstTeam].Color)
 

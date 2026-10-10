@@ -42,6 +42,7 @@ Config.Teams = {
 	{ Name = "노랑", Color = Color3.fromRGB(240, 200, 40) },
 }
 Config.DefaultTeamCount = 2 -- 방장이 안 고르면
+Config.PlayerGoesLast = true -- NPC 와 할 때 NPC 가 먼저 치고 사람이 마지막 (늦게 치는 쪽이 유리해서). false 면 무작위
 Config.ModeSelectTime = 20 -- 방장이 모드(2·3·4팀) 고르는 시간 (초)
 -- 팀 배치 : 판 가운데에서 왕알·알 줄까지 거리, 한 줄에 몇 개, 간격
 -- 3·4팀은 옆 팀과 안 겹치게 더 뒤로, 좁게 앉는다
@@ -133,9 +134,9 @@ Config.SoloWaitTime = 3 -- 친구를 이만큼 기다린 뒤 혼자 시작 (초)
 -- NPC (컴퓨터)
 Config.NpcName = "NPC"
 Config.NpcThinkTime = 1.5 -- 쏘기 전에 생각하는 척 (초)
-Config.NpcAimErrorDegrees = 10 -- 조준이 빗나가는 정도 (클수록 쉬움)
-Config.NpcMistakeChance = 0.25 -- 엉뚱한 데로 치는 확률 (0~1, 클수록 쉬움)
-Config.NpcPowerError = 0.25 -- 세기가 틀리는 정도 (0.25 = ±25%, 클수록 쉬움)
+Config.NpcAimErrorDegrees = 14 -- 조준이 빗나가는 정도 (클수록 쉬움)
+Config.NpcMistakeChance = 0.35 -- 엉뚱한 데로 치는 확률 (0~1, 클수록 쉬움)
+Config.NpcPowerError = 0.3 -- 세기가 틀리는 정도 (0.25 = ±25%, 클수록 쉬움)
 Config.NpcPowerBoost = 1.25 -- 계산한 세기보다 이만큼 세게 (클수록 과감)
 Config.NpcAbilityChance = 0.35 -- 능력 알이 있을 때 능력을 쓸 확률
 
