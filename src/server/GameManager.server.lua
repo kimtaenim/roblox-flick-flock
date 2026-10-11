@@ -9,6 +9,13 @@ local Config = require(Shared:WaitForChild("Config"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local AbilityList = require(Shared:WaitForChild("AbilityList"))
 local Board = require(script.Parent:WaitForChild("Board"))
+
+-- 판과 알 폴더를 제일 먼저 만든다 (아래 다른 모듈에 문제가 있어도 판은 보이게)
+local piecesFolder = Instance.new("Folder")
+piecesFolder.Name = "Pieces"
+piecesFolder.Parent = workspace
+Board.build(Config.DefaultTeamCount)
+
 local PieceFactory = require(script.Parent:WaitForChild("PieceFactory"))
 local Placement = require(script.Parent:WaitForChild("Placement"))
 local Elimination = require(script.Parent:WaitForChild("Elimination"))
@@ -53,11 +60,6 @@ local function onCharacterAdded(character: Model)
 	character.DescendantAdded:Connect(setCharacterGroup)
 end
 
-local piecesFolder = Instance.new("Folder")
-piecesFolder.Name = "Pieces"
-piecesFolder.Parent = workspace
-
-Board.build(Config.DefaultTeamCount)
 Damage.start(piecesFolder)
 
 ---------------------------------------------------------------- 팀 주인

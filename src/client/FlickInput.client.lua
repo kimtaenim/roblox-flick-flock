@@ -12,7 +12,6 @@ local TeamLayout = require(Shared:WaitForChild("TeamLayout"))
 local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
 local state = Remotes.State
-local piecesFolder = workspace:WaitForChild("Pieces")
 
 local AIM_MIN_LENGTH = 2
 local AIM_MAX_LENGTH = 14
@@ -306,6 +305,10 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	local ray = camera:ScreenPointToRay(input.Position.X, input.Position.Y)
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Include
+	local piecesFolder = workspace:FindFirstChild("Pieces")
+	if not piecesFolder then
+		return
+	end
 	params.FilterDescendantsInstances = { piecesFolder }
 	local result = workspace:Raycast(ray.Origin, ray.Direction * 500, params)
 	if result and canFlick(result.Instance) then

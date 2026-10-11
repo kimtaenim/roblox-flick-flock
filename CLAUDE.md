@@ -23,6 +23,7 @@
 | 파일 | 역할 |
 | --- | --- |
 | `src/server/GameManager.server.lua` | 팀 고르기·턴 진행, 요청 검증, 능력 효과 턴 관리, 승패 |
+| `src/server/ErrorReporter.server.lua` · `src/client/ErrorScreen.client.lua` | 오류가 나면 화면 왼쪽 위에 빨간 글씨 (서버·화면 오류, 15초 안에 판이 안 생기면 알림) |
 | `src/server/Board.lua` | 판 생성 (모양·크기·바닥, 용암 구멍, 울퉁불퉁 혹·언덕·구덩이) |
 | `src/server/PieceFactory.lua` | 알 생성 (Config.Pieces 다섯 값), 눈·왕관, HP 막대, 거대화 |
 | `src/server/Placement.lua` | 팀 배치, 빈 자리 찾기 |
