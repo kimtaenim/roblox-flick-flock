@@ -361,7 +361,7 @@ function Board.addTerrain(piecesFolder: Instance)
 				local pz = z + random:NextNumber(-ripples.Jitter, ripples.Jitter)
 				if BoardShape.inside(Board.shape, px, pz, 0.5) then
 					local info = { Radius = ripples.Radius, Height = random:NextNumber(ripples.MinHeight, ripples.MaxHeight) }
-					local shade = floor.Color:Lerp(Color3.new(0, 0, 0), random:NextNumber(0, 0.12))
+					local shade = floor.Color:Lerp(Color3.new(0, 0, 0), random:NextNumber(ripples.DarkMin, ripples.DarkMax))
 					makeMound("Ripple", px, pz, info, shade, (Enum.Material :: any)[floor.Material] or Enum.Material.Ground, folder)
 				end
 				z += ripples.Spacing

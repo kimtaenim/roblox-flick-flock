@@ -110,7 +110,8 @@ Config.Floors = {
 		Dips = { Count = 2, Radius = 4.5, Pull = 15, Damping = 0.8 },
 		-- 판 전체를 덮는 요철 : 판에 묻은 작은 공들을 모든 칸에 촘촘히 (알 밑까지). 어디로 가도 피할 수 없다
 		-- (Spacing 간격, Height 는 최소~최대 사이 무작위. 너무 높으면 게임이 재미없어서 알 두께보다 훨씬 낮게)
-		Ripples = { Spacing = 2.5, Radius = 2, MinHeight = 0.2, MaxHeight = 0.35, Jitter = 0.6 },
+		-- 작은 공이라 판 바닥이 사이사이 보인다. Dark = 판 색보다 얼마나 진하게 (최소~최대)
+		Ripples = { Spacing = 2.4, Radius = 1.3, MinHeight = 0.15, MaxHeight = 0.3, Jitter = 0.5, DarkMin = 0.12, DarkMax = 0.28 },
 		-- 요철 위에서 이 각도(도)까지 기운 알은 턴이 끝나도 그대로 둔다 (기운 알을 치면 점프샷!)
 		KeepTilt = 45,
 	},
