@@ -49,24 +49,6 @@ local function makeDecal(name: string, size: Vector3, cframe: CFrame, color: Col
 	return part
 end
 
--- 판 테두리 : 판보다 조금 크고 조금 낮은 진한 틀 (부딪히지 않아서 알은 그냥 떨어진다)
-local function makeFrame(name: string, size: Vector3, cframe: CFrame, parent: Instance, shapeType: Enum.PartType?)
-	local floor = floorInfo()
-	local part = Instance.new("Part")
-	part.Name = name
-	part.Shape = shapeType or Enum.PartType.Block
-	part.Anchored = true
-	part.CanCollide = false
-	part.CanQuery = false
-	part.CanTouch = false
-	part.Size = size
-	part.CFrame = cframe - Vector3.new(0, Config.BoardFrame.Drop, 0)
-	part.Color = floor.Color:Lerp(Config.BoardFrame.Color, Config.BoardFrame.Mix)
-	part.Material = Enum.Material.WoodPlanks
-	part.Parent = parent
-	return part
-end
-
 -- 가운데 용암 구멍 (화산). 판 밖 판정은 BoardShape 가 하고, 여기는 보이는 것만.
 local function makeLava(radius: number, parent: Instance)
 	local y = Config.BoardHeight + 0.03
@@ -268,21 +250,15 @@ function Board.build(teamCount: number, sizeKey: string?, floorKey: string?): Mo
 		for index = 0, 2 do
 			local cframe = CFrame.new(0, y, 0) * CFrame.Angles(0, math.rad(index * 60), 0)
 			makeSlab("Slab" .. index, Vector3.new(side, Config.BoardThickness, size), cframe, board)
-			local grow = Config.BoardFrame.Width * 2
-			makeFrame("Frame" .. index, Vector3.new(side + grow / math.sqrt(3), Config.BoardThickness, size + grow), cframe, board)
 		end
 	elseif shape.kind == "Circles" then
 		-- 둥근 판 여러 개를 겹쳐 놓는다 (호리병, 곰돌이 얼굴 + 귀)
 		for index, circle in shape.circles :: { BoardShape.Circle } do
 			local cframe = CFrame.new(circle.x, y, circle.z) * CFrame.Angles(0, 0, math.rad(90))
 			makeSlab("Lobe" .. index, Vector3.new(Config.BoardThickness, circle.r * 2, circle.r * 2), cframe, board, Enum.PartType.Cylinder)
-			local width = (circle.r + Config.BoardFrame.Width) * 2
-			makeFrame("Frame" .. index, Vector3.new(Config.BoardThickness, width, width), cframe, board, Enum.PartType.Cylinder)
 		end
 	else
 		makeSlab("Slab", Vector3.new(size, Config.BoardThickness, size), CFrame.new(0, y, 0), board)
-		local width = size + Config.BoardFrame.Width * 2
-		makeFrame("Frame", Vector3.new(width, Config.BoardThickness, width), CFrame.new(0, y, 0), board)
 	end
 
 	drawPattern(board)
@@ -319,6 +295,7 @@ local function makeMound(name: string, x: number, z: number, info, color: Color3
 	part.Name = name
 	part.Shape = Enum.PartType.Ball
 	part.Anchored = true
+	part.CanQuery = false
 	part.Size = Vector3.one * info.Radius * 2
 	part.Position = Vector3.new(x, Config.BoardHeight - info.Radius + info.Height, z)
 	part.Color = color
@@ -346,7 +323,7 @@ function Board.addTerrain(piecesFolder: Instance)
 		return random:NextNumber(low, high)
 	end)
 
-	-- 판 전체 요철 : 모든 칸에 촘촘히 (알 밑에도. 알은 다 만든 뒤 요철 위로 올려 놓는다)
+	-- 판 전체 요철 : 알이 놓인 자리만 빼고 촘촘히 (알이 처음부터 기울지 않게)
 	local ripples = floor.Ripples
 	if ripples then
 		local reach = Board.shape.reach
@@ -359,9 +336,18 @@ function Board.addTerrain(piecesFolder: Instance)
 			while z <= reach do
 				local px = x + random:NextNumber(-ripples.Jitter, ripples.Jitter)
 				local pz = z + random:NextNumber(-ripples.Jitter, ripples.Jitter)
-				if BoardShape.inside(Board.shape, px, pz, 0.5) then
+				local free = BoardShape.inside(Board.shape, px, pz, 1)
+				if free then
+					for _, other in occupied do
+						if math.sqrt((other[1] - px) ^ 2 + (other[2] - pz) ^ 2) < other[3] + 1 then
+							free = false
+							break
+						end
+					end
+				end
+				if free then
 					local info = { Radius = ripples.Radius, Height = random:NextNumber(ripples.MinHeight, ripples.MaxHeight) }
-					local shade = floor.Color:Lerp(Color3.new(0, 0, 0), random:NextNumber(ripples.DarkMin, ripples.DarkMax))
+					local shade = floor.Color:Lerp(Color3.new(0, 0, 0), random:NextNumber(0, 0.12))
 					makeMound("Ripple", px, pz, info, shade, (Enum.Material :: any)[floor.Material] or Enum.Material.Ground, folder)
 				end
 				z += ripples.Spacing
@@ -393,36 +379,6 @@ function Board.addTerrain(piecesFolder: Instance)
 		end
 		table.insert(Board.dips, { x = spot.x, z = spot.z, r = radius })
 	end
-
-	-- 요철에 파묻힌 알은 요철 위로 올린다 (떨어지면서 그 자리 요철에 맞게 살짝 기운다)
-	for _, piece in piecesFolder:GetChildren() do
-		if piece:IsA("BasePart") then
-			local radius = piece.Size.Y / 2
-			local lift = Board.groundHeight(piece.Position.X, piece.Position.Z, radius) - Config.BoardHeight
-			piece.CFrame += Vector3.new(0, lift, 0)
-		end
-	end
-end
-
--- (x, z) 자리 판 윗면 높이 (요철·언덕·혹 포함). radius 를 주면 그 둘레에서 가장 높은 곳
-function Board.groundHeight(x: number, z: number, radius: number?): number
-	local board = workspace:FindFirstChild("Board")
-	if not board then
-		return Config.BoardHeight
-	end
-	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Include
-	params.FilterDescendantsInstances = { board }
-	local reach = radius or 0
-	local highest = Config.BoardHeight
-	for _, offset in { { 0, 0 }, { reach, 0 }, { -reach, 0 }, { 0, reach }, { 0, -reach } } do
-		local origin = Vector3.new(x + offset[1], Config.BoardHeight + 5, z + offset[2])
-		local hit = workspace:Raycast(origin, Vector3.new(0, -10, 0), params)
-		if hit and hit.Instance.CanCollide then
-			highest = math.max(highest, hit.Position.Y)
-		end
-	end
-	return highest
 end
 
 return Board

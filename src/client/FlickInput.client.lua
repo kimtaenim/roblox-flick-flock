@@ -284,11 +284,7 @@ local function updateAim(screenPosition: Vector3)
 	shotPower = math.clamp(shot.Magnitude / Config.MaxDragDistance, 0, 1)
 
 	local length = AIM_MIN_LENGTH + (AIM_MAX_LENGTH - AIM_MIN_LENGTH) * shotPower
-	-- 울퉁불퉁 판은 요철에 묻히지 않게 요철 꼭대기보다 위에 그린다
-	local floor = Config.Floors[state:GetAttribute("FloorKey") or Config.DefaultFloor]
-	local ripples = floor and floor.Ripples
-	local arrowY = Config.BoardHeight + 0.3 + (if ripples then ripples.MaxHeight + 0.15 else 0)
-	local start = Vector3.new(center.X, arrowY, center.Z)
+	local start = Vector3.new(center.X, Config.BoardHeight + 0.3, center.Z)
 	aimArrow.Size = Vector3.new(0.6, 0.2, length)
 	aimArrow.CFrame = CFrame.lookAt(start + shotDirection * (length / 2), start + shotDirection * length)
 	aimArrow.Color = WEAK_COLOR:Lerp(STRONG_COLOR, shotPower)

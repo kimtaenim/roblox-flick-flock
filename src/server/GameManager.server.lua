@@ -627,25 +627,8 @@ local function runTeamSelect()
 	end
 end
 
--- 랜덤 모드 : 알 조합 하나를 무작위로 만들어 모든 팀에 똑같이 준다 (팀 고르기는 건너뜀)
-local function runRandomTeams()
-	table.clear(teamChoices)
-	local counts = BoardShape.randomCounts(Config, Board.setup, function()
-		return random:NextNumber()
-	end)
-	local pieces = buildCustomTeam(counts) or copyPreset(1)
-	for team = 1, teamCount do
-		local copy = {}
-		for _, entry in pieces do
-			table.insert(copy, { entry[1], entry[2] })
-		end
-		setChoice(team, copy)
-	end
-end
-
 -- 모드 고르기 : 방장(먼저 들어온 사람)이 팀 수(2·3·4), 판 크기·모양, 바닥을 고른다
--- 랜덤을 누르면 팀 수만 정하고 판·바닥·알은 무작위
-type Mode = { teams: number, size: string, floor: string, random: boolean? }
+type Mode = { teams: number, size: string, floor: string }
 local chosenMode: Mode? = nil
 
 Remotes.SelectMode.OnServerEvent:Connect(function(player, choice)
@@ -657,13 +640,6 @@ Remotes.SelectMode.OnServerEvent:Connect(function(player, choice)
 	end
 	local teams, size, floor = choice.teams, choice.size, choice.floor
 	if typeof(teams) ~= "number" or teams ~= math.floor(teams) or teams < 2 or teams > MAX_TEAMS then
-		return
-	end
-	if choice.random == true then
-		local randomSize, randomFloor = BoardShape.randomBoard(Config, teams, function()
-			return random:NextNumber()
-		end)
-		chosenMode = { teams = teams, size = randomSize, floor = randomFloor, random = true }
 		return
 	end
 	if typeof(size) ~= "string" or not Config.BoardSizes[size] or not BoardShape.allowed(Config, size, teams) then
@@ -711,23 +687,13 @@ end
 -- 원기둥은 X축이 높이라서 똑바로 = 몸의 X축이 하늘을 본다
 local function layFlat(piece: BasePart)
 	local half = PieceFactory.halfHeight(piece)
-	local radius = PieceFactory.radius(piece)
-	-- 울퉁불퉁 판은 요철 위에 기운 채 그대로 둔다 (기운 알을 치면 점프샷). 아주 많이 기울었거나 다른 알 위면 눕힌다
-	local floor = Config.Floors[Board.setup.floorKey]
-	local tilt = math.abs(piece.CFrame.RightVector:Dot(Vector3.yAxis))
-	local upright, onBoard
-	if floor.KeepTilt then
-		local ground = Board.groundHeight(piece.Position.X, piece.Position.Z, radius)
-		upright = tilt > math.cos(math.rad(floor.KeepTilt))
-		onBoard = piece.Position.Y - (ground + half) < 0.6 + radius * math.sin(math.rad(floor.KeepTilt))
-	else
-		upright = tilt > 0.97
-		onBoard = math.abs(piece.Position.Y - (Config.BoardHeight + half)) < 0.6
-	end
+	local upright = math.abs(piece.CFrame.RightVector:Dot(Vector3.yAxis)) > 0.97
+	local onBoard = math.abs(piece.Position.Y - (Config.BoardHeight + half)) < 0.6
 	if upright and onBoard then
 		return
 	end
 	-- 다른 알과 겹치지 않는 가장 가까운 자리 (보통은 바로 그 자리)
+	local radius = PieceFactory.radius(piece)
 	local spot = Placement.findFreeSpot(piece.Position.X, piece.Position.Z, radius, piecesFolder, piece)
 	if not spot then
 		return
@@ -854,15 +820,7 @@ local function playRound()
 	-- 고른 판 (팀 수에 따라 사각형·육각형, 호리병은 2팀만)
 	piecesFolder:ClearAllChildren()
 	Board.build(teamCount, mode.size, mode.floor)
-	if mode.random then
-		state:SetAttribute("Phase", "Starting")
-		runRandomTeams()
-		local floorName = Config.Floors[Board.setup.floorKey].Name
-		Effects.banner("🎲 " .. Config.BoardSizes[Board.setup.sizeKey].Name .. " · " .. floorName .. "!", Color3.new(1, 1, 1))
-		task.wait(Config.RandomBannerTime)
-	else
-		runTeamSelect()
-	end
+	runTeamSelect()
 	if restartRequested then
 		return
 	end

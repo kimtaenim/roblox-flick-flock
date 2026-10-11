@@ -165,16 +165,6 @@ function PieceFactory.decorate(piece: BasePart)
 		weld.Parent = body
 		eyeBase = center + up * height * 0.28 + forward * radius * 0.62
 	else
-		-- 윗면 가운데에 조금 밝은 동그라미 (바둑알·병뚜껑처럼 보이게)
-		makeDecoration(
-			"Top",
-			Vector3.new(0.04, radius * 1.6, radius * 1.6),
-			piece.Color:Lerp(Color3.new(1, 1, 1), 0.25),
-			CFrame.new(center + up * (height / 2 + 0.01)) * CFrame.Angles(0, 0, math.rad(90)),
-			piece,
-			folder,
-			Enum.PartType.Cylinder
-		)
 		eyeBase = center + up * height / 2 + forward * radius * 0.45
 	end
 	local eyeSize = radius * 0.45

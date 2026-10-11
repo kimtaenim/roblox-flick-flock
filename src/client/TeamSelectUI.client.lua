@@ -326,18 +326,11 @@ for _, key in sortedKeys(Config.Floors) do
 end
 makeRow("floor", "바닥", 210, floorEntries)
 
-local startButton = makeButton(modePanel, "시작! (모자란 자리는 NPC)", UDim2.new(0.5, -20, 0, 64), UDim2.new(0, 10, 0, 300))
+local startButton = makeButton(modePanel, "시작! (모자란 자리는 NPC)", UDim2.new(0, 320, 0, 64), UDim2.new(0.5, -160, 0, 300))
 startButton.BackgroundColor3 = Color3.fromRGB(120, 220, 120)
 startButton.TextSize = 24
 startButton.Activated:Connect(function()
 	Remotes.SelectMode:FireServer({ teams = mode.teams, size = mode.size, floor = mode.floor })
-end)
--- 랜덤 : 팀 수만 고르고 판·바닥·알은 무작위 (모든 팀이 같은 알 조합)
-local randomButton = makeButton(modePanel, "🎲 랜덤! (팀 수만 고르면 나머지는 무작위)", UDim2.new(0.5, -20, 0, 64), UDim2.new(0.5, 10, 0, 300))
-randomButton.BackgroundColor3 = Color3.fromRGB(255, 170, 220)
-randomButton.TextSize = 22
-randomButton.Activated:Connect(function()
-	Remotes.SelectMode:FireServer({ teams = mode.teams, random = true })
 end)
 refreshModeButtons()
 
