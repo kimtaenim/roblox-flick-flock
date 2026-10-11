@@ -137,6 +137,47 @@ local function drawClippedLine(x1: number, z1: number, x2: number, z2: number, w
 	end
 end
 
+-- 바닥 질감 그림 (모래 물결·얼룩, 풀·흙·자갈) : 자리는 BoardShape.texture 가 정한다
+local function drawTexture(parent: Instance)
+	local floor = floorInfo()
+	local texture = floor.Texture
+	if not texture then
+		return
+	end
+	local folder = Instance.new("Folder")
+	folder.Name = "Texture"
+	folder.Parent = parent
+	local random = Random.new()
+	local marks = BoardShape.texture(Board.shape, texture, function(low, high)
+		return random:NextNumber(low, high)
+	end)
+	for index, mark in marks do
+		local color = texture.Colors[mark.color]
+		-- 겹친 얼룩이 깜빡이지 않게 조금씩 다른 높이
+		local y = Config.BoardHeight + 0.01 + (index % 20) * 0.0005
+		if mark.kind == "Line" then
+			local part = makeDecal(
+				"Wave",
+				Vector3.new(mark.width, 0.03, mark.size),
+				CFrame.new(mark.x, y, mark.z) * CFrame.Angles(0, -math.rad(mark.angle) + math.pi / 2, 0),
+				color,
+				folder
+			)
+			part.Material = (Enum.Material :: any)[floor.Material] or Enum.Material.SmoothPlastic
+		else
+			local part = makeDecal(
+				"Spot",
+				Vector3.new(0.03, mark.size * 2, mark.size * 2),
+				CFrame.new(mark.x, y, mark.z) * CFrame.Angles(0, 0, math.rad(90)),
+				color,
+				folder,
+				Enum.PartType.Cylinder
+			)
+			part.Material = (Enum.Material :: any)[floor.Material] or Enum.Material.SmoothPlastic
+		end
+	end
+end
+
 local function drawPattern(parent: Instance)
 	local floor = floorInfo()
 	if not floor.Pattern then
@@ -286,6 +327,7 @@ function Board.build(teamCount: number, sizeKey: string?, floorKey: string?): Mo
 	end
 
 	drawPattern(board)
+	drawTexture(board)
 	if Config.BoardSizes[Board.setup.sizeKey].Face then
 		drawBearFace(board)
 	end
@@ -361,7 +403,8 @@ function Board.addTerrain(piecesFolder: Instance)
 				local pz = z + random:NextNumber(-ripples.Jitter, ripples.Jitter)
 				if BoardShape.inside(Board.shape, px, pz, 0.5) then
 					local info = { Radius = ripples.Radius, Height = random:NextNumber(ripples.MinHeight, ripples.MaxHeight) }
-					local shade = floor.Color:Lerp(Color3.new(0, 0, 0), random:NextNumber(ripples.DarkMin, ripples.DarkMax))
+					local base = if floor.RippleColors then floor.RippleColors[random:NextInteger(1, #floor.RippleColors)] else floor.Color
+					local shade = base:Lerp(Color3.new(0, 0, 0), random:NextNumber(ripples.DarkMin, ripples.DarkMax))
 					makeMound("Ripple", px, pz, info, shade, (Enum.Material :: any)[floor.Material] or Enum.Material.Ground, folder)
 				end
 				z += ripples.Spacing

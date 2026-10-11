@@ -114,6 +114,21 @@ Config.Floors = {
 		Ripples = { Spacing = 2.4, Radius = 1.3, MinHeight = 0.15, MaxHeight = 0.3, Jitter = 0.5, DarkMin = 0.12, DarkMax = 0.28 },
 		-- 요철 위에서 이 각도(도)까지 기운 알은 턴이 끝나도 그대로 둔다 (기운 알을 치면 점프샷!)
 		KeepTilt = 45,
+		-- 바닥 질감 그림 : 풀밭·진흙·자갈 얼룩 (Count 는 보통 판 기준, Cluster = 한 곳에 몇 개 뭉침)
+		Texture = {
+			Spots = {
+				{ Count = 9, MinRadius = 1.5, MaxRadius = 3.5, Cluster = 4, Color = "Grass" },
+				{ Count = 7, MinRadius = 2, MaxRadius = 4.5, Cluster = 2, Color = "Mud" },
+				{ Count = 14, MinRadius = 0.25, MaxRadius = 0.55, Cluster = 6, Color = "Gravel" },
+			},
+			Colors = {
+				Grass = Color3.fromRGB(118, 150, 72),
+				Mud = Color3.fromRGB(112, 88, 62),
+				Gravel = Color3.fromRGB(150, 148, 140),
+			},
+		},
+		-- 요철 공 색 : 흙색 몇 가지 중 무작위
+		RippleColors = { Color3.fromRGB(140, 115, 82), Color3.fromRGB(122, 100, 72), Color3.fromRGB(160, 135, 98), Color3.fromRGB(128, 120, 90) },
 	},
 	Sand = {
 		Name = "모래판",
@@ -123,6 +138,24 @@ Config.Floors = {
 		FrictionWeight = 2.5,
 		Color = Color3.fromRGB(232, 206, 150),
 		Material = "Sand",
+		-- 바닥 질감 그림 : 바람이 만든 물결 자국 + 진한·밝은 모래 얼룩 + 조개·조약돌
+		-- Waves : Spacing 줄 간격, Height·Length 구불거림, Step 토막 길이, Width 굵기, Gap 끊어진 곳 비율
+		Texture = {
+			Waves = { Spacing = 3, Jitter = 0.5, Height = 0.6, Length = 16, Step = 1.6, Width = 0.3, Gap = 0.08 },
+			Spots = {
+				{ Count = 5, MinRadius = 2, MaxRadius = 4, Cluster = 3, Color = "Dark" },
+				{ Count = 4, MinRadius = 1.5, MaxRadius = 3, Cluster = 3, Color = "Light" },
+				{ Count = 7, MinRadius = 0.3, MaxRadius = 0.5, Cluster = 2, Color = "Shell" },
+				{ Count = 6, MinRadius = 0.25, MaxRadius = 0.45, Cluster = 3, Color = "Pebble" },
+			},
+			Colors = {
+				Wave = Color3.fromRGB(205, 175, 118),
+				Dark = Color3.fromRGB(224, 196, 140),
+				Light = Color3.fromRGB(240, 218, 168),
+				Shell = Color3.fromRGB(255, 225, 220),
+				Pebble = Color3.fromRGB(150, 140, 128),
+			},
+		},
 	},
 	Chess = {
 		Name = "체스판",

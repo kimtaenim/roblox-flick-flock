@@ -352,6 +352,59 @@ function BoardShape.adaptPreset(config, setup: Setup, pieces: { { string } }): {
 	return list
 end
 
+-- 바닥 질감 무늬 : 모래 물결 자국·얼룩·조개, 울퉁불퉁 풀·흙·자갈 얼룩 (보이기만 하는 그림)
+-- 돌려주는 것 : { kind = "Line"|"Spot", x, z, length/radius, angle(도), color = Texture.Colors 이름 }
+-- nextNumber(low, high) 는 low~high 난수
+export type Mark = { kind: string, x: number, z: number, size: number, width: number, angle: number, color: string }
+function BoardShape.texture(shape: Shape, texture, nextNumber: (number, number) -> number): { Mark }
+	local marks: { Mark } = {}
+	local scale = (shape.size / 64) ^ 2 -- 큰 판은 얼룩도 많이
+	local reach = shape.reach
+
+	-- 물결 자국 : 판을 가로지르는 구불구불한 줄 (짧은 토막을 이어 붙임)
+	local waves = texture.Waves
+	if waves then
+		local z0 = -reach
+		while z0 <= reach do
+			local phase = nextNumber(0, math.pi * 2)
+			local x = -reach
+			while x < reach do
+				local function wave(at: number): number
+					return z0 + waves.Height * math.sin(at * 2 * math.pi / waves.Length + phase)
+				end
+				local x2 = x + waves.Step
+				local za, zb = wave(x), wave(x2)
+				local mx, mz = (x + x2) / 2, (za + zb) / 2
+				if BoardShape.inside(shape, mx, mz, 0.6) and nextNumber(0, 1) > waves.Gap then
+					local length = math.sqrt(waves.Step ^ 2 + (zb - za) ^ 2)
+					local angle = math.deg(math.atan2(zb - za, waves.Step))
+					table.insert(marks, { kind = "Line", x = mx, z = mz, size = length + 0.15, width = waves.Width, angle = angle, color = "Wave" })
+				end
+				x = x2
+			end
+			z0 += waves.Spacing + nextNumber(-waves.Jitter, waves.Jitter)
+		end
+	end
+
+	-- 얼룩·작은 것들 : { Count, MinRadius, MaxRadius, Color, Cluster(한 곳에 몇 개 뭉침) }
+	for _, group in texture.Spots or {} do
+		local count = math.max(1, math.floor(group.Count * scale + 0.5))
+		for _ = 1, count do
+			local cx, cz = nextNumber(-reach, reach), nextNumber(-reach, reach)
+			for _ = 1, group.Cluster or 1 do
+				local radius = nextNumber(group.MinRadius, group.MaxRadius)
+				local spread = if (group.Cluster or 1) > 1 then group.MaxRadius else 0
+				local x = cx + nextNumber(-spread, spread)
+				local z = cz + nextNumber(-spread, spread)
+				if BoardShape.inside(shape, x, z, radius * 0.5) then
+					table.insert(marks, { kind = "Spot", x = x, z = z, size = radius, width = 0, angle = 0, color = group.Color })
+				end
+			end
+		end
+	end
+	return marks
+end
+
 -- 랜덤 모드 : 이 팀 수로 쓸 수 있는 판·바닥 중 하나씩 (nextNumber() 는 0~1 난수)
 function BoardShape.randomBoard(config, teamCount: number, nextNumber: () -> number): (string, string)
 	local sizes = {}

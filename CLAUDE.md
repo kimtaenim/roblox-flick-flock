@@ -57,6 +57,7 @@
 - [x] 판 고르기 : 보통·작은·큰·호리병·곰돌이 × 나무·얼음판·화산·울퉁불퉁·모래판·체스판·장기판·바둑판. 판 크기별 예산(작은 8, 보통 12, 큰 15)과 추천 팀 크기 조절 (`BoardShape.adaptPreset`)
 - [x] 랜덤 모드 : 팀 수만 고르고 🎲 랜덤 → 판·바닥 무작위, 모든 팀이 같은 무작위 알 조합 (`BoardShape.randomBoard`, `randomCounts`)
 - [x] 꾸미기 : 판 테두리(`Config.BoardFrame`), 납작 알 윗면 동그라미, 팀 색 밝게
+- [x] 바닥 질감 그림 : 모래판 물결 자국·얼룩·조개, 울퉁불퉁 풀·흙·자갈 얼룩과 여러 흙색 요철 (`Floors.*.Texture`, `BoardShape.texture`). 위에서 본 모습 : `docs/previews/floors.png`
 - [ ] Studio 실제 플레이 테스트 후 고칠 것 정리 (물리 느낌, 소리 파일 존재 여부, UI 크기)
 
 ## 설계서에서 정한 해석
