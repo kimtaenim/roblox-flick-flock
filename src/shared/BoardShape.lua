@@ -352,6 +352,62 @@ function BoardShape.adaptPreset(config, setup: Setup, pieces: { { string } }): {
 	return list
 end
 
+-- 랜덤 모드 : 이 팀 수로 쓸 수 있는 판·바닥 중 하나씩 (nextNumber() 는 0~1 난수)
+function BoardShape.randomBoard(config, teamCount: number, nextNumber: () -> number): (string, string)
+	local sizes = {}
+	for key in config.BoardSizes do
+		if BoardShape.allowed(config, key, teamCount) then
+			table.insert(sizes, key)
+		end
+	end
+	table.sort(sizes) -- 순서가 늘 같아야 같은 난수로 같은 판이 나온다
+	local sizeKey = sizes[math.min(#sizes, math.floor(nextNumber() * #sizes) + 1)]
+	local floors = {}
+	for key in config.Floors do
+		if BoardShape.floorAllowed(config, sizeKey, key) then
+			table.insert(floors, key)
+		end
+	end
+	table.sort(floors)
+	local floorKey = floors[math.min(#floors, math.floor(nextNumber() * #floors) + 1)]
+	return sizeKey, floorKey
+end
+
+-- 랜덤 모드 팀 : 판 예산 안에서 알 종류 개수를 무작위로 { Flat, Round, Half, Ability }
+-- 모든 팀이 똑같은 조합을 받으니까 서로 큰 차이가 안 난다
+function BoardShape.randomCounts(config, setup: Setup, nextNumber: () -> number): { [string]: number }
+	local capacity = setup.layout.PerRow * #setup.layout.Rows
+	local weights = config.RandomTeamWeights
+	local counts = { Flat = 0, Round = 0, Half = 0, Ability = 0 }
+	local money, total = setup.budget, 0
+	while total < capacity do
+		local options, weightSum = {}, 0
+		for _, kind in { "Flat", "Round", "Ability", "Half" } do
+			local underLimit = kind ~= "Ability" or counts.Ability < config.RandomMaxAbilities
+			if config.Prices[kind] <= money and underLimit then
+				table.insert(options, kind)
+				weightSum += weights[kind]
+			end
+		end
+		if #options == 0 then
+			break
+		end
+		local pick = nextNumber() * weightSum
+		local chosen = options[#options]
+		for _, kind in options do
+			pick -= weights[kind]
+			if pick <= 0 then
+				chosen = kind
+				break
+			end
+		end
+		counts[chosen] += 1
+		money -= config.Prices[chosen]
+		total += 1
+	end
+	return counts
+end
+
 -- 알이 이 바닥에서 미끄러질 때 초당 줄어드는 속도 (로블록스는 무게를 단 평균 마찰을 쓴다)
 function BoardShape.slowdown(setup: Setup, pieceFriction: number, gravity: number): number
 	local friction = (pieceFriction + setup.friction * setup.frictionWeight) / (1 + setup.frictionWeight)

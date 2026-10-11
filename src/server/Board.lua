@@ -49,6 +49,24 @@ local function makeDecal(name: string, size: Vector3, cframe: CFrame, color: Col
 	return part
 end
 
+-- 판 테두리 : 판보다 조금 크고 조금 낮은 진한 틀 (부딪히지 않아서 알은 그냥 떨어진다)
+local function makeFrame(name: string, size: Vector3, cframe: CFrame, parent: Instance, shapeType: Enum.PartType?)
+	local floor = floorInfo()
+	local part = Instance.new("Part")
+	part.Name = name
+	part.Shape = shapeType or Enum.PartType.Block
+	part.Anchored = true
+	part.CanCollide = false
+	part.CanQuery = false
+	part.CanTouch = false
+	part.Size = size
+	part.CFrame = cframe - Vector3.new(0, Config.BoardFrame.Drop, 0)
+	part.Color = floor.Color:Lerp(Config.BoardFrame.Color, Config.BoardFrame.Mix)
+	part.Material = Enum.Material.WoodPlanks
+	part.Parent = parent
+	return part
+end
+
 -- 가운데 용암 구멍 (화산). 판 밖 판정은 BoardShape 가 하고, 여기는 보이는 것만.
 local function makeLava(radius: number, parent: Instance)
 	local y = Config.BoardHeight + 0.03
@@ -250,15 +268,21 @@ function Board.build(teamCount: number, sizeKey: string?, floorKey: string?): Mo
 		for index = 0, 2 do
 			local cframe = CFrame.new(0, y, 0) * CFrame.Angles(0, math.rad(index * 60), 0)
 			makeSlab("Slab" .. index, Vector3.new(side, Config.BoardThickness, size), cframe, board)
+			local grow = Config.BoardFrame.Width * 2
+			makeFrame("Frame" .. index, Vector3.new(side + grow / math.sqrt(3), Config.BoardThickness, size + grow), cframe, board)
 		end
 	elseif shape.kind == "Circles" then
 		-- 둥근 판 여러 개를 겹쳐 놓는다 (호리병, 곰돌이 얼굴 + 귀)
 		for index, circle in shape.circles :: { BoardShape.Circle } do
 			local cframe = CFrame.new(circle.x, y, circle.z) * CFrame.Angles(0, 0, math.rad(90))
 			makeSlab("Lobe" .. index, Vector3.new(Config.BoardThickness, circle.r * 2, circle.r * 2), cframe, board, Enum.PartType.Cylinder)
+			local width = (circle.r + Config.BoardFrame.Width) * 2
+			makeFrame("Frame" .. index, Vector3.new(Config.BoardThickness, width, width), cframe, board, Enum.PartType.Cylinder)
 		end
 	else
 		makeSlab("Slab", Vector3.new(size, Config.BoardThickness, size), CFrame.new(0, y, 0), board)
+		local width = size + Config.BoardFrame.Width * 2
+		makeFrame("Frame", Vector3.new(width, Config.BoardThickness, width), CFrame.new(0, y, 0), board)
 	end
 
 	drawPattern(board)

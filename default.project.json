@@ -63,7 +63,76 @@
     },
     "Lighting": {
       "$properties": {
-        "ClockTime": 14
+        "ClockTime": 14.5,
+        "Brightness": 2.5,
+        "Ambient": [
+          0.45,
+          0.45,
+          0.5
+        ],
+        "OutdoorAmbient": [
+          0.6,
+          0.6,
+          0.65
+        ],
+        "EnvironmentDiffuseScale": 1,
+        "EnvironmentSpecularScale": 0.6,
+        "GlobalShadows": true,
+        "ShadowSoftness": 0.4
+      },
+      "Atmosphere": {
+        "$className": "Atmosphere",
+        "$properties": {
+          "Density": 0.25,
+          "Offset": 0.1,
+          "Haze": 1,
+          "Glare": 0.2,
+          "Color": [
+            0.78,
+            0.86,
+            1.0
+          ],
+          "Decay": [
+            0.55,
+            0.7,
+            0.9
+          ]
+        }
+      },
+      "Bloom": {
+        "$className": "BloomEffect",
+        "$properties": {
+          "Intensity": 0.6,
+          "Size": 24,
+          "Threshold": 1.4
+        }
+      },
+      "ColorCorrection": {
+        "$className": "ColorCorrectionEffect",
+        "$properties": {
+          "Brightness": 0.03,
+          "Contrast": 0.08,
+          "Saturation": 0.15,
+          "TintColor": [
+            1,
+            0.99,
+            0.96
+          ]
+        }
+      },
+      "SunRays": {
+        "$className": "SunRaysEffect",
+        "$properties": {
+          "Intensity": 0.06,
+          "Spread": 0.6
+        }
+      },
+      "Sky": {
+        "$className": "Sky",
+        "$properties": {
+          "SunAngularSize": 14,
+          "CelestialBodiesShown": true
+        }
       }
     },
     "Players": {

@@ -627,8 +627,25 @@ local function runTeamSelect()
 	end
 end
 
+-- 랜덤 모드 : 알 조합 하나를 무작위로 만들어 모든 팀에 똑같이 준다 (팀 고르기는 건너뜀)
+local function runRandomTeams()
+	table.clear(teamChoices)
+	local counts = BoardShape.randomCounts(Config, Board.setup, function()
+		return random:NextNumber()
+	end)
+	local pieces = buildCustomTeam(counts) or copyPreset(1)
+	for team = 1, teamCount do
+		local copy = {}
+		for _, entry in pieces do
+			table.insert(copy, { entry[1], entry[2] })
+		end
+		setChoice(team, copy)
+	end
+end
+
 -- 모드 고르기 : 방장(먼저 들어온 사람)이 팀 수(2·3·4), 판 크기·모양, 바닥을 고른다
-type Mode = { teams: number, size: string, floor: string }
+-- 랜덤을 누르면 팀 수만 정하고 판·바닥·알은 무작위
+type Mode = { teams: number, size: string, floor: string, random: boolean? }
 local chosenMode: Mode? = nil
 
 Remotes.SelectMode.OnServerEvent:Connect(function(player, choice)
@@ -640,6 +657,13 @@ Remotes.SelectMode.OnServerEvent:Connect(function(player, choice)
 	end
 	local teams, size, floor = choice.teams, choice.size, choice.floor
 	if typeof(teams) ~= "number" or teams ~= math.floor(teams) or teams < 2 or teams > MAX_TEAMS then
+		return
+	end
+	if choice.random == true then
+		local randomSize, randomFloor = BoardShape.randomBoard(Config, teams, function()
+			return random:NextNumber()
+		end)
+		chosenMode = { teams = teams, size = randomSize, floor = randomFloor, random = true }
 		return
 	end
 	if typeof(size) ~= "string" or not Config.BoardSizes[size] or not BoardShape.allowed(Config, size, teams) then
@@ -687,8 +711,11 @@ end
 -- 원기둥은 X축이 높이라서 똑바로 = 몸의 X축이 하늘을 본다
 local function layFlat(piece: BasePart)
 	local half = PieceFactory.halfHeight(piece)
-	local upright = math.abs(piece.CFrame.RightVector:Dot(Vector3.yAxis)) > 0.97
-	local onBoard = math.abs(piece.Position.Y - (Config.BoardHeight + half)) < 0.6
+	-- 울퉁불퉁 판은 요철 위에 조금 기운 채 서 있어도 괜찮다
+	local ripples = Config.Floors[Board.setup.floorKey].Ripples
+	local rippleHeight = if ripples then ripples.MaxHeight else 0
+	local upright = math.abs(piece.CFrame.RightVector:Dot(Vector3.yAxis)) > (if ripples then 0.85 else 0.97)
+	local onBoard = math.abs(piece.Position.Y - (Config.BoardHeight + half)) < 0.6 + rippleHeight
 	if upright and onBoard then
 		return
 	end
@@ -699,7 +726,7 @@ local function layFlat(piece: BasePart)
 		return
 	end
 	-- 처음 만들 때와 같은 방향 (눈이 판 가운데를 본다)
-	piece.CFrame = CFrame.new(spot + Vector3.new(0, half + 0.05, 0)) * CFrame.Angles(0, 0, math.rad(90))
+	piece.CFrame = CFrame.new(spot + Vector3.new(0, half + 0.05 + rippleHeight, 0)) * CFrame.Angles(0, 0, math.rad(90))
 	piece.AssemblyLinearVelocity = Vector3.zero
 	piece.AssemblyAngularVelocity = Vector3.zero
 end
@@ -820,7 +847,15 @@ local function playRound()
 	-- 고른 판 (팀 수에 따라 사각형·육각형, 호리병은 2팀만)
 	piecesFolder:ClearAllChildren()
 	Board.build(teamCount, mode.size, mode.floor)
-	runTeamSelect()
+	if mode.random then
+		state:SetAttribute("Phase", "Starting")
+		runRandomTeams()
+		local floorName = Config.Floors[Board.setup.floorKey].Name
+		Effects.banner("🎲 " .. Config.BoardSizes[Board.setup.sizeKey].Name .. " · " .. floorName .. "!", Color3.new(1, 1, 1))
+		task.wait(Config.RandomBannerTime)
+	else
+		runTeamSelect()
+	end
 	if restartRequested then
 		return
 	end

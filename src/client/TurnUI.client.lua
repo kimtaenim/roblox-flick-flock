@@ -125,6 +125,8 @@ local function refresh()
 		turnLabel.Text = "몇 팀으로 할까요?"
 	elseif phase == "TeamSelect" then
 		turnLabel.Text = "팀 고르기"
+	elseif phase == "Starting" then
+		turnLabel.Text = "🎲 랜덤 판 준비 중..."
 	elseif phase == "Aiming" then
 		turnLabel.Text = teamInfo.Name .. " 차례 (" .. ownerText(team) .. ")"
 		turnLabel.TextColor3 = teamInfo.Color
