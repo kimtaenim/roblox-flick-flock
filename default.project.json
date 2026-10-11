@@ -63,7 +63,8 @@
     },
     "Lighting": {
       "$properties": {
-        "ClockTime": 14
+        "ClockTime": 14,
+        "Technology": "Voxel"
       }
     },
     "Players": {
