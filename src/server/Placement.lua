@@ -50,6 +50,10 @@ function Placement.findFreeSpot(wantX: number, wantZ: number, radius: number, fo
 			end
 		end
 	end
+	-- 울퉁불퉁 판이면 요철 꼭대기 높이에 놓는다 (요철에 파묻히지 않게)
+	if best then
+		best = Vector3.new(best.X, Board.groundHeight(best.X, best.Z, radius), best.Z)
+	end
 	return best
 end
 
