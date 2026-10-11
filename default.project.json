@@ -59,9 +59,6 @@
             32
           ]
         }
-      },
-      "$properties": {
-        "StreamingEnabled": false
       }
     },
     "Lighting": {
