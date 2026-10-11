@@ -151,8 +151,12 @@ local function drawTexture(parent: Instance)
 	local marks = BoardShape.texture(Board.shape, texture, function(low, high)
 		return random:NextNumber(low, high)
 	end)
+	local glow = texture.Glow or {}
 	for index, mark in marks do
 		local color = texture.Colors[mark.color]
+		local material = if glow[mark.color]
+			then Enum.Material.Neon
+			else (Enum.Material :: any)[floor.Material] or Enum.Material.SmoothPlastic
 		-- 겹친 얼룩이 깜빡이지 않게 조금씩 다른 높이
 		local y = Config.BoardHeight + 0.01 + (index % 20) * 0.0005
 		if mark.kind == "Line" then
@@ -163,7 +167,7 @@ local function drawTexture(parent: Instance)
 				color,
 				folder
 			)
-			part.Material = (Enum.Material :: any)[floor.Material] or Enum.Material.SmoothPlastic
+			part.Material = material
 		else
 			local part = makeDecal(
 				"Spot",
@@ -173,7 +177,7 @@ local function drawTexture(parent: Instance)
 				folder,
 				Enum.PartType.Cylinder
 			)
-			part.Material = (Enum.Material :: any)[floor.Material] or Enum.Material.SmoothPlastic
+			part.Material = material
 		end
 	end
 end

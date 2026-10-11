@@ -386,6 +386,36 @@ function BoardShape.texture(shape: Shape, texture, nextNumber: (number, number) 
 		end
 	end
 
+	-- 갈라진 금 : 이리저리 꺾이며 뻗는 선. FromCenter 면 가운데 구멍 가장자리에서 바깥으로
+	-- { Count, Segments, Step, Turn(꺾이는 각도, 도), Width, Color, FromCenter }
+	for _, group in texture.Cracks or {} do
+		local count = math.max(1, math.floor(group.Count * (if group.FromCenter then 1 else scale) + 0.5))
+		for index = 1, count do
+			local x, z, angle
+			if group.FromCenter then
+				angle = (index - 1) / count * 360 + nextNumber(-15, 15)
+				local start = shape.holeRadius + 0.3
+				x, z = math.cos(math.rad(angle)) * start, math.sin(math.rad(angle)) * start
+			else
+				x, z = nextNumber(-reach, reach), nextNumber(-reach, reach)
+				angle = nextNumber(0, 360)
+			end
+			local width = group.Width
+			for _ = 1, group.Segments do
+				angle += nextNumber(-group.Turn, group.Turn)
+				local x2 = x + math.cos(math.rad(angle)) * group.Step
+				local z2 = z + math.sin(math.rad(angle)) * group.Step
+				local mx, mz = (x + x2) / 2, (z + z2) / 2
+				if not BoardShape.inside(shape, mx, mz, 0.4) then
+					break
+				end
+				table.insert(marks, { kind = "Line", x = mx, z = mz, size = group.Step + width, width = width, angle = angle, color = group.Color })
+				x, z = x2, z2
+				width = math.max(width * 0.9, 0.08) -- 끝으로 갈수록 가늘게
+			end
+		end
+	end
+
 	-- 얼룩·작은 것들 : { Count, MinRadius, MaxRadius, Color, Cluster(한 곳에 몇 개 뭉침) }
 	for _, group in texture.Spots or {} do
 		local count = math.max(1, math.floor(group.Count * scale + 0.5))

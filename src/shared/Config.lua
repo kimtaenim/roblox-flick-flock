@@ -85,6 +85,21 @@ Config.Floors = {
 		FrictionWeight = 5,
 		Color = Color3.fromRGB(180, 225, 255),
 		Material = "Ice",
+		-- 바닥 질감 그림 : 하얀 금, 서리 얼룩, 얼음 속 공기 방울
+		Texture = {
+			Cracks = { { Count = 14, Segments = 9, Step = 1.6, Turn = 35, Width = 0.14, Color = "Crack" } },
+			Spots = {
+				{ Count = 7, MinRadius = 1.5, MaxRadius = 3.5, Cluster = 3, Color = "Frost" },
+				{ Count = 5, MinRadius = 2, MaxRadius = 4, Cluster = 1, Color = "Deep" },
+				{ Count = 12, MinRadius = 0.12, MaxRadius = 0.3, Cluster = 5, Color = "Bubble" },
+			},
+			Colors = {
+				Crack = Color3.fromRGB(245, 252, 255),
+				Frost = Color3.fromRGB(218, 240, 255),
+				Deep = Color3.fromRGB(150, 205, 245),
+				Bubble = Color3.fromRGB(255, 255, 255),
+			},
+		},
 	},
 	Volcano = {
 		Name = "화산",
@@ -94,6 +109,28 @@ Config.Floors = {
 		Color = Color3.fromRGB(70, 60, 60),
 		Material = "Basalt",
 		HoleRadius = 6, -- 가운데 용암 구멍 (빠지면 탈락)
+		-- 바닥 질감 그림 : 용암 구멍에서 뻗어 나간 빛나는 금, 여기저기 갈라진 검은 금, 재·식은 용암 얼룩
+		-- Glow 에 적힌 색은 빛나는 재질(Neon)
+		Texture = {
+			Cracks = {
+				{ Count = 9, Segments = 10, Step = 1.8, Turn = 30, Width = 0.32, Color = "Lava", FromCenter = true },
+				{ Count = 6, Segments = 6, Step = 1.5, Turn = 40, Width = 0.18, Color = "Lava" },
+				{ Count = 12, Segments = 7, Step = 1.5, Turn = 40, Width = 0.16, Color = "Dark" },
+			},
+			Spots = {
+				{ Count = 7, MinRadius = 1.5, MaxRadius = 3.5, Cluster = 3, Color = "Ash" },
+				{ Count = 5, MinRadius = 1.5, MaxRadius = 3, Cluster = 2, Color = "Cooled" },
+				{ Count = 10, MinRadius = 0.25, MaxRadius = 0.5, Cluster = 4, Color = "Ember" },
+			},
+			Colors = {
+				Lava = Color3.fromRGB(255, 110, 30),
+				Dark = Color3.fromRGB(35, 30, 30),
+				Ash = Color3.fromRGB(105, 100, 98),
+				Cooled = Color3.fromRGB(95, 45, 35),
+				Ember = Color3.fromRGB(255, 150, 60),
+			},
+			Glow = { Lava = true, Ember = true },
+		},
 	},
 	Bumpy = {
 		Name = "울퉁불퉁",

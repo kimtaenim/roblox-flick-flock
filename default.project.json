@@ -64,7 +64,11 @@
     "Lighting": {
       "$properties": {
         "ClockTime": 14,
-        "Technology": "Voxel"
+        "Technology": "ShadowMap",
+        "Brightness": 2,
+        "EnvironmentDiffuseScale": 1,
+        "EnvironmentSpecularScale": 1,
+        "GlobalShadows": true
       }
     },
     "Players": {
