@@ -1,5 +1,6 @@
 -- 왕알 HP 계산
--- damage = 충돌 상대속도 × 때린 알의 질량 계수 × Config.DamageScale
+-- damage = 충돌 상대속도 × 때린 알의 질량 계수 × Config.DamageScale × 정타 정도^DamageGlancePower
+-- 정타 정도 = 두 알 가운데를 잇는 방향으로 부딪힌 속도 ÷ 전체 상대속도 (정면 1, 스치면 0 에 가까움)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
@@ -21,11 +22,12 @@ function Damage.setProtected(protected: boolean)
 	protectedMinHp = if protected then 1 else 0
 end
 
-function Damage.formula(relativeSpeed: number, massFactor: number): number
+function Damage.formula(relativeSpeed: number, massFactor: number, directness: number?): number
 	if relativeSpeed < Config.DamageMinSpeed then
 		return 0
 	end
-	return relativeSpeed * massFactor * Config.DamageScale
+	local direct = math.clamp(directness or 1, 0, 1) ^ Config.DamageGlancePower
+	return relativeSpeed * massFactor * Config.DamageScale * direct
 end
 
 -- 왕알 HP 깎기. minHp 아래로는 안 내려간다 (폭발은 1)
@@ -83,7 +85,13 @@ local function onPieceTouched(piece: BasePart, other: BasePart)
 	if hits[other] and now - hits[other] < Config.DamageCooldown then
 		return
 	end
-	local amount = Damage.formula(relativeSpeed, PieceFactory.massFactor(other))
+	-- 정타인지 빗맞았는지 : 두 알 가운데를 잇는 방향의 속도
+	local between = (piece.Position - other.Position) * Vector3.new(1, 0, 1)
+	local directness = 1
+	if between.Magnitude > 0.01 and relativeSpeed > 0.01 then
+		directness = math.abs((otherVelocity - pieceVelocity):Dot(between.Unit)) / relativeSpeed
+	end
+	local amount = Damage.formula(relativeSpeed, PieceFactory.massFactor(other), directness)
 	if amount > 0 then
 		hits[other] = now
 		Damage.apply(piece, amount)

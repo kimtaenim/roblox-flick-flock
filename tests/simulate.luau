@@ -69,11 +69,11 @@ local function layoutTeam(team: number, teamCount: number, entries, pieces)
 end
 
 -- Damage.formula 와 같은 식
-local function damageFormula(relativeSpeed: number, massFactor: number): number
+local function damageFormula(relativeSpeed: number, massFactor: number, directness: number): number
 	if relativeSpeed < Config.DamageMinSpeed then
 		return 0
 	end
-	return relativeSpeed * massFactor * Config.DamageScale
+	return relativeSpeed * massFactor * Config.DamageScale * math.clamp(directness, 0, 1) ^ Config.DamageGlancePower
 end
 
 local function step(pieces)
@@ -113,11 +113,13 @@ local function step(pieces)
 						-- 왕알 데미지 (상대속도 × 때린 알 질량 계수)
 						local relative = math.sqrt((a.vx - b.vx) ^ 2 + (a.vz - b.vz) ^ 2)
 						-- 같은 편끼리는 데미지 없음 (Damage.lua 와 같은 규칙)
+						-- 정타 정도 (Damage.lua 와 같은 계산)
+						local directness = if relative > 0.01 then closing / relative else 1
 						if a.kind == "King" and a.team ~= b.team then
-							a.hp -= damageFormula(relative, b.massFactor)
+							a.hp -= damageFormula(relative, b.massFactor, directness)
 						end
 						if b.kind == "King" and a.team ~= b.team then
-							b.hp -= damageFormula(relative, a.massFactor)
+							b.hp -= damageFormula(relative, a.massFactor, directness)
 						end
 						local impulse = (1 + (a.bounce + b.bounce) / 2) * closing / (1 / a.mass + 1 / b.mass)
 						a.vx -= impulse / a.mass * nx
