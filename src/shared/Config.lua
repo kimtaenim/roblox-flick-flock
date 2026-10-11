@@ -4,6 +4,8 @@ local Config = {}
 -- 판
 Config.BoardThickness = 2
 Config.BoardHeight = 6 -- 판 윗면 높이
+-- 판 테두리 (보이기만 하고 부딪히지 않음) : Width 두께, Drop 판 윗면보다 낮은 정도, Color 와 Mix 만큼 섞은 진한 색
+Config.BoardFrame = { Width = 1.2, Drop = 0.35, Color = Color3.fromRGB(70, 45, 30), Mix = 0.55 }
 Config.FallDepth = 3 -- 판 윗면보다 이만큼 아래로 떨어지면 탈락
 
 -- 판 크기·모양 : 방장이 판 시작 전에 고른다
@@ -106,15 +108,19 @@ Config.Floors = {
 		Mounds = { Count = 3, Radius = 7, Height = 0.7 }, -- 언덕 : 넓고 완만해서 빠르면 타고 살짝 점프
 		-- 구덩이 : 얕게 패인 곳. 알이 지나가면 가운데로 살짝 끌리고(Pull) 조금 느려진다(Damping)
 		Dips = { Count = 2, Radius = 4.5, Pull = 15, Damping = 0.8 },
-		-- 판 전체를 덮는 낮은 요철 : 판에 묻은 작은 공들을 촘촘히 (Spacing 간격, Height 는 최소~최대 사이 무작위)
-		Ripples = { Spacing = 4, Radius = 3, MinHeight = 0.1, MaxHeight = 0.25, Jitter = 1.2 },
+		-- 판 전체를 덮는 요철 : 판에 묻은 작은 공들을 모든 칸에 촘촘히 (알 밑까지). 어디로 가도 피할 수 없다
+		-- (Spacing 간격, Height 는 최소~최대 사이 무작위. 너무 높으면 게임이 재미없어서 알 두께보다 훨씬 낮게)
+		-- 작은 공이라 판 바닥이 사이사이 보인다. Dark = 판 색보다 얼마나 진하게 (최소~최대)
+		Ripples = { Spacing = 2.4, Radius = 1.3, MinHeight = 0.15, MaxHeight = 0.3, Jitter = 0.5, DarkMin = 0.12, DarkMax = 0.28 },
+		-- 요철 위에서 이 각도(도)까지 기운 알은 턴이 끝나도 그대로 둔다 (기운 알을 치면 점프샷!)
+		KeepTilt = 45,
 	},
 	Sand = {
 		Name = "모래판",
 		Icon = "🏖",
 		Order = 5,
-		Friction = 0.4, -- 모래라서 나무보다 덜 미끄러짐 (알이 조금 일찍 멈춤)
-		FrictionWeight = 2,
+		Friction = 0.5, -- 모래라서 나무보다 덜 미끄러짐 (알이 일찍 멈춤)
+		FrictionWeight = 2.5,
 		Color = Color3.fromRGB(232, 206, 150),
 		Material = "Sand",
 	},
@@ -183,10 +189,10 @@ Config.DamageCooldown = 0.3 -- 같은 알이 연달아 때릴 때 간격 (초)
 -- 팀 : 2~4팀. 팀들은 판 가운데를 빙 둘러 앉고, 차례도 빙 돌아간다.
 -- 2팀 = 빨강 앞(+Z)·파랑 뒤 / 4팀 = 네 변 / 3팀 = 120도 간격
 Config.Teams = {
-	{ Name = "빨강", Color = Color3.fromRGB(226, 70, 70) },
-	{ Name = "파랑", Color = Color3.fromRGB(64, 120, 230) },
-	{ Name = "보라", Color = Color3.fromRGB(150, 80, 220) },
-	{ Name = "노랑", Color = Color3.fromRGB(240, 200, 40) },
+	{ Name = "빨강", Color = Color3.fromRGB(240, 82, 92) },
+	{ Name = "파랑", Color = Color3.fromRGB(70, 140, 245) },
+	{ Name = "보라", Color = Color3.fromRGB(165, 105, 235) },
+	{ Name = "노랑", Color = Color3.fromRGB(250, 200, 50) },
 }
 Config.DefaultTeamCount = 2 -- 방장이 안 고르면
 Config.PlayerGoesLast = true -- NPC 와 할 때 NPC 가 먼저 치고 사람이 마지막 (늦게 치는 쪽이 유리해서). false 면 무작위
@@ -196,6 +202,10 @@ Config.ModeSelectTime = 20 -- 방장이 모드(2·3·4팀) 고르는 시간 (초
 -- 팀 선택 (예산제)
 Config.Budget = 12 -- 보통 판 예산 (판마다 다른 예산은 Config.BoardSizes 의 Budget)
 Config.Prices = { Flat = 2, Round = 2, Ability = 3, Half = 1 }
+-- 랜덤 모드 : 알 종류가 뽑힐 비율 (클수록 많이 나옴), 능력 알은 최대 몇 개까지
+Config.RandomTeamWeights = { Flat = 3, Round = 3, Ability = 2, Half = 1 }
+Config.RandomMaxAbilities = 3
+Config.RandomBannerTime = 2.5 -- 랜덤으로 뽑힌 판을 보여주는 시간 (초)
 Config.TeamSelectTime = 40 -- 이 시간 안에 안 고르면 첫 번째 추천 팀 (초)
 -- 추천 팀 : 알 목록. { kind, ability } — ability 가 있으면 능력 알
 Config.PresetTeams = {

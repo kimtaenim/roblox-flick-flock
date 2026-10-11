@@ -210,15 +210,16 @@ local function infoOf(p)
 	}
 end
 
--- presets : 팀마다 추천 팀 번호. 돌려주는 것 : 턴 수, 이긴 팀 (0 무승부, -1 안 끝남), 끝난 이유
-local function playGame(seed: number, presets: { number }, sizeKey: string?, floorKey: string?)
+-- presets : 팀마다 추천 팀 번호 (또는 알 목록 그대로). 돌려주는 것 : 턴 수, 이긴 팀 (0 무승부, -1 안 끝남), 끝난 이유
+local function playGame(seed: number, presets: { any }, sizeKey: string?, floorKey: string?)
 	local rng = makeRandom(seed)
 	local teamCount = #presets
 	setup = BoardShape.makeSetup(Config, sizeKey or "Normal", floorKey or "Wood", teamCount)
 	local pieces = {}
 	for team, preset in presets do
 		-- GameManager.copyPreset 처럼 판 크기에 맞게 늘이거나 줄인 추천 팀
-		layoutTeam(team, teamCount, BoardShape.adaptPreset(Config, setup, Config.PresetTeams[preset].Pieces), pieces)
+		local entries = if type(preset) == "table" then preset else BoardShape.adaptPreset(Config, setup, Config.PresetTeams[preset].Pieces)
+		layoutTeam(team, teamCount, entries, pieces)
 	end
 
 	-- 울퉁불퉁이면 Board.addTerrain 처럼 알 사이 빈 자리에 언덕·구덩이·혹
@@ -462,6 +463,59 @@ for _, sizeKey in sizeKeys do
 			end
 		end
 	end
+end
+
+-- 랜덤 모드 : 판·바닥 무작위 + 모든 팀이 같은 무작위 알 조합 (GameManager.runRandomTeams 처럼)
+for teamCount = 2, 4 do
+	local games, turnsSum, draws = 40, 0, 0
+	local wins: { [number]: number } = {}
+	local boards: { [string]: number } = {}
+	local pieceSum = 0
+	for seed = 1, games do
+		local rng = makeRandom(seed * 92821 + teamCount)
+		local nextNumber = function()
+			return rng:NextNumber()
+		end
+		local sizeKey, floorKey = BoardShape.randomBoard(Config, teamCount, nextNumber)
+		local boardSetup = BoardShape.makeSetup(Config, sizeKey, floorKey, teamCount)
+		local counts = BoardShape.randomCounts(Config, boardSetup, nextNumber)
+		local cost, list = 0, {}
+		for kind, count in counts do
+			cost += count * Config.Prices[kind]
+			for _ = 1, count do
+				table.insert(list, { if kind == "Ability" then "Flat" else kind })
+			end
+		end
+		assert(cost <= boardSetup.budget and #list <= TeamLayout.capacity(boardSetup.layout) and #list > 0, "랜덤 팀이 예산·자리를 넘음")
+		pieceSum += #list
+		local key = Config.BoardSizes[sizeKey].Name .. "/" .. Config.Floors[floorKey].Name
+		boards[key] = (boards[key] or 0) + 1
+		local presets = {}
+		for team = 1, teamCount do
+			presets[team] = list
+		end
+		local turns, winner = playGame(seed * 31 + teamCount, presets, sizeKey, floorKey)
+		turnsSum += turns
+		if winner == -1 then
+			unfinished += 1
+		elseif winner == 0 then
+			draws += 1
+		else
+			wins[winner] = (wins[winner] or 0) + 1
+		end
+	end
+	local line = {}
+	for team = 1, teamCount do
+		table.insert(line, string.format("%s %d승", Config.Teams[team].Name, wins[team] or 0))
+	end
+	local kinds = 0
+	for _ in boards do
+		kinds += 1
+	end
+	print(string.format(
+		"랜덤 %d팀 : %d판, 판·바닥 %d가지, 팀당 알 평균 %.1f개, 평균 %.1f턴, 무승부 %d | %s",
+		teamCount, games, kinds, pieceSum / games, turnsSum / games, draws, table.concat(line, " · ")
+	))
 end
 
 print(if unfinished == 0 then "모든 판이 승패로 끝남" else ("끝나지 않은 판: " .. unfinished))
