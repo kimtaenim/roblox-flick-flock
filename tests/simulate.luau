@@ -87,6 +87,13 @@ local function step(pieces)
 				p.vx -= p.vx / speed * slow
 				p.vz -= p.vz / speed * slow
 			end
+			-- 모래처럼 Drag 가 있는 바닥 (GameManager 와 같은 계산)
+			local drag = Config.Floors[setup.floorKey].Drag or 0
+			if drag > 0 then
+				local keep = math.max(1 - drag * DT, 0)
+				p.vx *= keep
+				p.vz *= keep
+			end
 			p.x += p.vx * DT
 			p.z += p.vz * DT
 		end

@@ -173,6 +173,7 @@ Config.Floors = {
 		Order = 5,
 		Friction = 0.5, -- 모래라서 나무보다 덜 미끄러짐 (알이 일찍 멈춤)
 		FrictionWeight = 2.5,
+		Drag = 1.6, -- 모래에 푹푹 빠지는 느낌 : 판 위를 미끄러지는 알이 1초에 이만큼 비율로 더 느려짐 (0 = 없음)
 		Color = Color3.fromRGB(232, 206, 150),
 		Material = "Sand",
 		-- 바닥 질감 그림 : 바람이 만든 물결 자국 + 진한·밝은 모래 얼룩 + 조개·조약돌

@@ -185,6 +185,45 @@ end
 
 ---------------------------------------------------------------- 매 프레임 물리
 
+-- 바닥 느낌 : 알이 움직이는 동안
+-- 1) 모래처럼 Drag 가 있는 바닥은 판 위를 미끄러지는 알을 더 빨리 느리게 한다 (로블록스 마찰만으로는 약해서)
+-- 2) 울퉁불퉁 판의 구덩이에 들어오면 가운데로 끌려가고 느려진다 (고임)
+RunService.Heartbeat:Connect(function(dt)
+	if state:GetAttribute("Phase") ~= "Moving" then
+		return
+	end
+	local floor = Config.Floors[Board.setup.floorKey]
+	local drag = floor.Drag or 0
+	local dipInfo = floor.Dips
+	local hasDips = dipInfo ~= nil and #Board.dips > 0
+	if drag <= 0 and not hasDips then
+		return
+	end
+	for _, piece in piecesFolder:GetChildren() do
+		if piece:IsA("BasePart") and not piece.Anchored then
+			local velocity = piece.AssemblyLinearVelocity
+			-- 판에 닿아 있을 때만 (날아가는 중에는 안 느려짐)
+			local onFloor = piece.Position.Y - Config.BoardHeight < PieceFactory.halfHeight(piece) + 0.6
+			if drag > 0 and onFloor then
+				local slow = math.max(1 - drag * dt, 0)
+				velocity = Vector3.new(velocity.X * slow, velocity.Y, velocity.Z * slow)
+			end
+			if hasDips then
+				for _, dip in Board.dips do
+					local offset = Vector3.new(dip.x - piece.Position.X, 0, dip.z - piece.Position.Z)
+					local distance = offset.Magnitude
+					if distance < dip.r then
+						local pull = if distance > 0.2 then offset.Unit * dipInfo.Pull * dt * (distance / dip.r) else Vector3.zero
+						local slow = math.max(1 - dipInfo.Damping * dt, 0)
+						velocity = Vector3.new(velocity.X * slow, velocity.Y, velocity.Z * slow) + pull
+					end
+				end
+			end
+			piece.AssemblyLinearVelocity = velocity
+		end
+	end
+end)
+
 RunService.Heartbeat:Connect(function()
 	-- 판 밖으로 나간 알은 바로 탈락
 	local function sayGoodbye(piece: BasePart)
