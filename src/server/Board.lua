@@ -378,7 +378,7 @@ function Board.addTerrain(piecesFolder: Instance)
 	Board.dips = {}
 	local floor = floorInfo()
 	local board = workspace:FindFirstChild("Board")
-	if not (floor.Bumps or floor.Mounds or floor.Dips) or not board then
+	if not (floor.Bumps or floor.Mounds or floor.Dips or floor.Ripples) or not board then
 		return
 	end
 	local random = Random.new()
@@ -405,7 +405,9 @@ function Board.addTerrain(piecesFolder: Instance)
 			while z <= reach do
 				local px = x + random:NextNumber(-ripples.Jitter, ripples.Jitter)
 				local pz = z + random:NextNumber(-ripples.Jitter, ripples.Jitter)
-				if BoardShape.inside(Board.shape, px, pz, 0.5) then
+				local nearHole = Board.shape.holeRadius > 0
+					and math.sqrt(px * px + pz * pz) < Board.shape.holeRadius + (floor.RippleGap or 0)
+				if BoardShape.inside(Board.shape, px, pz, 0.5) and not nearHole then
 					local info = { Radius = ripples.Radius, Height = random:NextNumber(ripples.MinHeight, ripples.MaxHeight) }
 					local base = if floor.RippleColors then floor.RippleColors[random:NextInteger(1, #floor.RippleColors)] else floor.Color
 					local shade = base:Lerp(Color3.new(0, 0, 0), random:NextNumber(ripples.DarkMin, ripples.DarkMax))

@@ -81,8 +81,8 @@ Config.Floors = {
 		Name = "얼음판",
 		Icon = "🧊",
 		Order = 2,
-		Friction = 0.1,
-		FrictionWeight = 5,
+		Friction = 0.17, -- 나무보다 1.5배쯤 멀리 감 (0.1 이면 너무 미끄럽다는 반응)
+		FrictionWeight = 3,
 		Color = Color3.fromRGB(180, 225, 255),
 		Material = "Ice",
 		-- 바닥 질감 그림 : 하얀 금, 서리 얼룩, 얼음 속 공기 방울
@@ -109,6 +109,11 @@ Config.Floors = {
 		Color = Color3.fromRGB(70, 60, 60),
 		Material = "Basalt",
 		HoleRadius = 6, -- 가운데 용암 구멍 (빠지면 탈락)
+		-- 용암 둘레(HoleRadius + RippleGap)를 뺀 곳에 울퉁불퉁의 반쯤 되는 낮은 요철 (식은 용암이 굳은 느낌)
+		Ripples = { Spacing = 2.8, Radius = 1.4, MinHeight = 0.1, MaxHeight = 0.24, Jitter = 0.6, DarkMin = 0, DarkMax = 0.2 },
+		RippleGap = 1.5,
+		RippleColors = { Color3.fromRGB(70, 60, 60), Color3.fromRGB(58, 50, 50), Color3.fromRGB(85, 72, 68) },
+		KeepTilt = 45,
 		-- 바닥 질감 그림 : 용암 구멍에서 뻗어 나간 빛나는 금, 여기저기 갈라진 검은 금, 재·식은 용암 얼룩
 		-- Glow 에 적힌 색은 빛나는 재질(Neon)
 		Texture = {
@@ -141,14 +146,14 @@ Config.Floors = {
 		Material = "Ground",
 		-- 지형 세 가지 : 가끔 생각과 다르게 굴러가는 랜덤 요소 정도로 약하게. Count 는 보통 판 기준 (판 넓이에 맞춰 늘고 준다)
 		-- Radius = 공 반지름 (공을 판에 묻어서 Height 만큼만 위로 솟게)
-		Bumps = { Count = 4, Radius = 1.6, Height = 0.6 }, -- 혹 : 작고 가팔라서 부딪히면 튕김
-		Mounds = { Count = 3, Radius = 7, Height = 0.7 }, -- 언덕 : 넓고 완만해서 빠르면 타고 살짝 점프
+		Bumps = { Count = 8, Radius = 1.6, Height = 0.6 }, -- 혹 : 작고 가팔라서 부딪히면 튕김
+		Mounds = { Count = 5, Radius = 7, Height = 0.7 }, -- 언덕 : 넓고 완만해서 빠르면 타고 살짝 점프
 		-- 구덩이 : 얕게 패인 곳. 알이 지나가면 가운데로 살짝 끌리고(Pull) 조금 느려진다(Damping)
-		Dips = { Count = 2, Radius = 4.5, Pull = 15, Damping = 0.8 },
+		Dips = { Count = 3, Radius = 4.5, Pull = 15, Damping = 0.8 },
 		-- 판 전체를 덮는 요철 : 판에 묻은 작은 공들을 모든 칸에 촘촘히 (알 밑까지). 어디로 가도 피할 수 없다
 		-- (Spacing 간격, Height 는 최소~최대 사이 무작위. 너무 높으면 게임이 재미없어서 알 두께보다 훨씬 낮게)
 		-- 작은 공이라 판 바닥이 사이사이 보인다. Dark = 판 색보다 얼마나 진하게 (최소~최대)
-		Ripples = { Spacing = 2.4, Radius = 1.3, MinHeight = 0.15, MaxHeight = 0.3, Jitter = 0.5, DarkMin = 0.12, DarkMax = 0.28 },
+		Ripples = { Spacing = 2.2, Radius = 1.4, MinHeight = 0.25, MaxHeight = 0.45, Jitter = 0.5, DarkMin = 0.12, DarkMax = 0.28 },
 		-- 요철 위에서 이 각도(도)까지 기운 알은 턴이 끝나도 그대로 둔다 (기운 알을 치면 점프샷!)
 		KeepTilt = 45,
 		-- 바닥 질감 그림 : 풀밭·진흙·자갈 얼룩 (Count 는 보통 판 기준, Cluster = 한 곳에 몇 개 뭉침)
@@ -171,9 +176,9 @@ Config.Floors = {
 		Name = "모래판",
 		Icon = "🏖",
 		Order = 5,
-		Friction = 0.5, -- 모래라서 나무보다 덜 미끄러짐 (알이 일찍 멈춤)
+		Friction = 0.65, -- 모래라서 나무의 절반쯤만 감
 		FrictionWeight = 2.5,
-		Drag = 1.6, -- 모래에 푹푹 빠지는 느낌 : 판 위를 미끄러지는 알이 1초에 이만큼 비율로 더 느려짐 (0 = 없음)
+		Drag = 0.15, -- 모래에 푹푹 빠지는 느낌 : 판 위를 미끄러지는 알이 1초에 이만큼 비율로 더 느려짐 (0 = 없음)
 		Color = Color3.fromRGB(232, 206, 150),
 		Material = "Sand",
 		-- 바닥 질감 그림 : 바람이 만든 물결 자국 + 진한·밝은 모래 얼룩 + 조개·조약돌
